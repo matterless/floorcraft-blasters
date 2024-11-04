@@ -1,0 +1,14 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/_matterless/Scenes/blasters.unity
+    guid: e94cb10e7aa2a4bb2a7cfa4eb486dc97
+  m_configObjects:
+    UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: cbb0d608645f3469d9728d2980081a9b, type: 2}
+    UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 58a469910ae554478902b49c6be9a8fc, type: 2}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 9b8e00c74356c481aaa01e2715f321e9, type: 2}

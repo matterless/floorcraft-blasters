@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589dfadc6c3f94cd6b45feca4c64f013, type: 3}
+  m_Name: Notification Settings
+  m_EditorClassIdentifier: 
+  m_NotificationDatas:
+  - m_Type: 2
+    m_Text: YOU_DESTROY_OPPONENT_LABEL
+    m_Icon: {fileID: 687614996, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 3
+    m_Text: YOU_DESTROY_LABEL
+    m_Icon: {fileID: 687614996, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 1
+    m_Text: JOIN_SPACE_LABEL
+    m_Icon: {fileID: 42959382, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 0
+    m_Text: JOINED_SPACE_LABEL
+    m_Icon: {fileID: 42959382, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 5
+    m_Text: LEAVE_SPACE_LABEL
+    m_Icon: {fileID: 42959382, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 6
+    m_Text: DOMAIN_SESSION_ASSIGNED
+    m_Icon: {fileID: 42959382, guid: c22bb60a70e6e404495d0246ac914cd8, type: 3}
+  - m_Type: 7
+    m_Text: DOMAIN_QR_CODE_FAILED
+    m_Icon: {fileID: 21300000, guid: faeec5ca0cd794358b402f642cc2347e, type: 3}

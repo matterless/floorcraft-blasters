@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eadcbfc508d024d41b9e3e03c592616b, type: 3}
+  m_Name: BC_Floorcraft_Arena
+  m_EditorClassIdentifier: 
+  m_AppName: 'Floorcraft: Arena'
+  m_AppVersion: 0.2
+  m_BuildNumber: 120
+  m_AppIdentifier: com.matterlessstudios.topsyturvy
+  m_Scenes:
+  - {fileID: 102900000, guid: 6cb1ebaf43b4af34f94e7b30d157a089, type: 3}
+  m_Defines:
+  - UNITY_XR_ARKIT_LOADER_ENABLED
+  m_OutputFolder: Floorcraft_Arena
+  m_OutputFolderPostfix: p

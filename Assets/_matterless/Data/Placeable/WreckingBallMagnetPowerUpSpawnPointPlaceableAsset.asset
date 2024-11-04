@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c680ae620f8344dcb9d1c3d722906b5e, type: 3}
+  m_Name: WreckingBallMagnetPowerUpSpawnPointPlaceableAsset
+  m_EditorClassIdentifier: 
+  m_Id: 106
+  m_ResourcesPath: PowerUpSpawnPointView
+  m_AssetType: 4
+  m_Size: 1
+  m_SelectorPrefab: {fileID: 1671670773560150199, guid: 90676a1f8ff2fcf4ea09f80b0fdc9201, type: 3}
+  m_Style: 0
+  m_SelectLocalisationTag: SELECT_PLACEABLE_WRECKING_BALL
+  m_PlaceLocalisationTag: PLACE_WRECKING_BALL_POINT
+  m_RemoveLocalisationTag: REMOVE_WRECKING_BALL_POINTS

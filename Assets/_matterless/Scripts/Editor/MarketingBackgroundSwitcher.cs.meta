@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 7b4074b4743cc5f488177de8830ba487
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_DefaultRenderPipelineAsset: {fileID: 11400000, guid: 7dff3ed36cdf10b4097b77946e9d4984, type: 2}
+  - m_MarketingRenderPipelineAsset: {fileID: 11400000, guid: 6042e8eb5b263f0448ced00c73d35795, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

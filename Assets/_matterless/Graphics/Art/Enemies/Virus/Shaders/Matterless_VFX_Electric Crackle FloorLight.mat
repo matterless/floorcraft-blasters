@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Matterless_VFX_Electric Crackle FloorLight
+  m_Shader: {fileID: 4800000, guid: e8b554a8720e8704f89be1d4b52e9cb1, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _LightTexture:
+        m_Texture: {fileID: 2800000, guid: f67542eb74bc25743aeb7f11460ac9d9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: a22a9158ca64e3c449147b31ed16c2fc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _FlipBookFour: 0
+    - _FlipBookOne: 0
+    - _FlipBookThree: 0
+    - _FlipBookTwo: 0
+    - _Offset: 0
+    - _Softness: 0.05
+    m_Colors:
+    - _Color: {r: 1.4980392, g: 1.0588236, b: 1.1450981, a: 1}
+    - _GlowColor: {r: 1.0953275, g: 0.38749796, b: 0.48214957, a: 1}
+    - _LightColor: {r: 1.8443027, g: 1.2649406, b: 1.5546217, a: 1}
+  m_BuildTextureStacks: []

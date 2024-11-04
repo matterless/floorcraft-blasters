@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b00c52e2620c7c64ca4b761dae364c83, type: 3}
+  m_Name: AudioDatabase_Floorcraft
+  m_EditorClassIdentifier: 
+  m_AudioEvents:
+  - {fileID: 11400000, guid: 1bb995f3b42e1bd4fa77d467032baa2d, type: 2}
+  - {fileID: 11400000, guid: 5c85e3a1b73f9d24db85c5ac370beaf8, type: 2}
+  - {fileID: 11400000, guid: 4246ed3781be37f49b5c1f483aadb780, type: 2}
+  - {fileID: 11400000, guid: 3eaac6b825ad04aabbe57efcb20134c7, type: 2}
+  - {fileID: 11400000, guid: c28afa39bf61a42e5a3c2c28fe9336bd, type: 2}
+  - {fileID: 11400000, guid: 29db5d8f5ff974d4186e25786b8461f7, type: 2}
+  - {fileID: 11400000, guid: 42defa875a2024b30b01e1ecd64a92b3, type: 2}
+  - {fileID: 11400000, guid: 07eb945448dba4d36814de3e993f7927, type: 2}
+  - {fileID: 11400000, guid: bb5e0b4909cd1f04c9703cfcae8ab5ae, type: 2}
+  - {fileID: 11400000, guid: 9dde2d26e180243ab949c9c9f9f2cf21, type: 2}
+  - {fileID: 11400000, guid: 0aff56f25fda54bdebed8dc5b4e25d36, type: 2}
+  - {fileID: 11400000, guid: 9a494899146084d85824904a192b3625, type: 2}
+  - {fileID: 11400000, guid: d8f94dfd19f7541b285a8599427c37f0, type: 2}
+  m_AudioMixerSnapshots:
+  - {fileID: -3604128010805248959, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}
+  - {fileID: 24500006, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}

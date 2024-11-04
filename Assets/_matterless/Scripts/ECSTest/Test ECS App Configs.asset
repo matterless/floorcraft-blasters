@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05774ba49d7948a41a563857b7241418, type: 3}
+  m_Name: Test ECS App Configs
+  m_EditorClassIdentifier: 
+  m_AukiSettings:
+    m_AppKey: 1d933f35-f065-471b-92eb-81a007f25af0
+    m_AppSecret: f580d7f8-f470-4dc2-a4fe-73a0691cf6240a9092c9-0fd4-42cb-bcdb-e1c5e08a45d8
+    m_LogLevel: 3
+    m_AutoJoinOnStart: 0
+    m_CameraCullingMask:
+      serializedVersion: 2
+      m_Bits: 7
+    m_HumanSegmentationDepthMode: 0
+    m_HumanSegmentationStencilMode: 0
+    m_EnvironmentDepthMode: 0
+    m_PlaneDetectionMode: 1
+    m_UseThisSessionIdInEditor: 0
+    m_SessionId: 2e6x13fe8
+  m_AppSettings:
+    m_CreateEntity: 1

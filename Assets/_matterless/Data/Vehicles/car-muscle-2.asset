@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd240b408a2f4818af5f6f6f10674436, type: 3}
+  m_Name: car-muscle-2
+  m_EditorClassIdentifier: 
+  m_Id: 212
+  m_ResourcesPath: NewEntities/MuscleSpeeder
+  m_AssetType: 0
+  m_Size: 0.0175
+  m_SelectorPrefab: {fileID: 9148672702143308364, guid: 80942c4beaf0a6740bd684fe12bd23ab, type: 3}
+  m_Style: 2
+  m_StyleColor: {r: 0.22459061, g: 0.9716981, b: 0.3786179, a: 1}
+  m_MaxSpeed: 500
+  m_MaxTurningRadius: 360
+  m_BrakeDistance: 7
+  m_Acceleration: 225
+  m_BrakePower: 1500
+  m_GroundClearance: 3
+  m_BoostPower: 10

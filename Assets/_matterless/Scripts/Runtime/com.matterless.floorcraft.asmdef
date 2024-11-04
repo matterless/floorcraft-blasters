@@ -1,0 +1,43 @@
+{
+    "name": "com.matterless.floorcraft",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d9c976a9c85a3f2438bda974229fff8e",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:a9420e37d7990b54abdef6688edbe313",
+        "GUID:92703082f92b41ba80f0d6912de66115",
+        "GUID:7f67a24487fdc894d971ca11121da006",
+        "GUID:08996924625b69d48bc7c09fa30faadc",
+        "GUID:364ce30d6725e9a459891c25c7c869a4",
+        "GUID:3526761f76bd3504d87a2df387691c31",
+        "GUID:7c961365ce016f842a8cb24fbd06dbce",
+        "GUID:e9d637572d6c60f47a11b46506753692",
+        "GUID:b0a1d1bcc150d4b21b48c526c804dcc7",
+        "GUID:266ab695b22c94962b8ef89ac2d2b539",
+        "GUID:47cc005f93ee5464588f13d2b2fdac44",
+        "GUID:15fc0a57446b3144c949da3e2b9737a9",
+        "GUID:fb846449f52484e42b2ddb47ac08f085",
+        "GUID:9b9ebe14b7d7e6e4fa69cb58214fb10a",
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95",
+        "GUID:60bfecf5cb232594891bc622f40d6bed",
+        "GUID:08d1c582746949b40ba6a45cdb776bdf",
+        "GUID:9150bcab995d2364583d07ad8bd821d4",
+        "GUID:f4d299c1a039bdf429099f744020a5a0"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "com.aukilabs.unity.conjurekit.dll",
+        "com.aukilabs.unity.manna.dll",
+        "com.aukilabs.unity.vikja.dll",
+        "Newtonsoft.Json.dll",
+        "com.matterless.utools.dll",
+        "com.aukilabs.unity.grund.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

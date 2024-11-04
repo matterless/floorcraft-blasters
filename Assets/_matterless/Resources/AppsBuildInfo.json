@@ -1,0 +1,12 @@
+{
+    "Floorcraft":{
+        "Identifier":"com.matterlessstudios.topsyturvy",
+        "Name":"Floorcraft: Arena",
+        "Icon":"Assets/Textures/AppIcons/FloorIt_app_logo.png"
+    },
+    "TUI":{
+        "Identifier":"com.matterlessstudios.tui",
+        "Name":"TUI",
+        "Icon":"Assets/TUI/TUI_app_logo.png"
+    }
+}

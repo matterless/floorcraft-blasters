@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 928f9af8153b4c75aedbe820ad4dcd00, type: 3}
+  m_Name: CFG_VFX_Engine_Speedster_00
+  m_EditorClassIdentifier: 
+  m_PlumeMinSize: 1.5
+  m_PlumeMaxSize: 2.25
+  m_StartPlumeTextureTiling: 1
+  m_EndPlumeTextureTiling: 0.5
+  m_PlumeTextureOffsetSpeed: 2
+  m_FireFliesParticlesMinSpeed: 0.5
+  m_FireFliesParticlesMaxSpeed: 1.5
+  m_FireFliesParticleMinEmissionRate: 10
+  m_FireFliesParticleMaxEmissionRate: 75
+  m_FireFliesParticleConeMinAngle: 5
+  m_FireFliesParticleConeMaxAngle: 27

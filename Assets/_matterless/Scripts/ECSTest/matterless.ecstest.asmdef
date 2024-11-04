@@ -1,0 +1,22 @@
+{
+    "name": "matterless.ecstest",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f640c1a70fe29a14990d278618c2acbe",
+        "GUID:364ce30d6725e9a459891c25c7c869a4",
+        "GUID:a9420e37d7990b54abdef6688edbe313"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "com.matterless.utools.dll",
+        "com.aukilabs.unity.conjurekit.dll",
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <assembly fullname="Auki.QR" preserve="all" />
+  <assembly fullname="com.aukilabs.unity.ark" preserve="all" />
+  <assembly fullname="Auki.Ark" preserve="all" />
+  <assembly fullname="com.aukilabs.unity.manna" preserve="all" />
+  <assembly fullname="Auki.ConjureKit.Manna" preserve="all" />
+  <assembly fullname="com.aukilabs.unity.grund" preserve="all" />
+  <assembly fullname="Auki.ConjureKit.Grund" preserve="all" />
+  <assembly fullname="com.aukilabs.unity.conjurekit" preserve="all" />
+  <assembly fullname="Auki.ConjureKit" preserve="all" />
+</linker>

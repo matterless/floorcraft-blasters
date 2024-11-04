@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c680ae620f8344dcb9d1c3d722906b5e, type: 3}
+  m_Name: DashAttackPowerUpSpawnPointPlaceableAsset
+  m_EditorClassIdentifier: 
+  m_Id: 107
+  m_ResourcesPath: PowerUpSpawnPointView
+  m_AssetType: 4
+  m_Size: 1
+  m_SelectorPrefab: {fileID: 1671670773560150199, guid: 814166a3e69c49c4b8e252e6bdac9acb, type: 3}
+  m_Style: 0
+  m_SelectLocalisationTag: SELECT_PLACEABLE_DASH
+  m_PlaceLocalisationTag: PLACE_DASH_POINT
+  m_RemoveLocalisationTag: REMOVE_DASH_POINTS

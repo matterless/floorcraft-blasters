@@ -1,0 +1,346 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 402603c43ee9d4769859eae80ce39df3, type: 3}
+  m_Name: Blasters Configs
+  m_EditorClassIdentifier: 
+  m_RenderingSettings:
+    m_TargetFrameRate: 30
+    m_ArMatchFrameRateRequested: 0
+  m_PrivacyPolicySettings:
+    m_TOS_Link: https://your-company.com/termsofservice
+    m_PP_Link: https://your-company.com/privacypolicy
+  m_DomainSettings:
+    m_Admin: 0
+  m_HeartbeatSettings:
+    m_DomainThreshold: 5000
+    m_HeartbeatFrequencyThresholdPercentage: 0.2
+    m_OnlyMasterClient: 0
+  m_AukiSettings:
+    m_AppKey: Auki posemesh App Key
+    m_AppSecret: Auki posemesh App Secret
+    m_LogLevel: 3
+    m_AutoJoinOnStart: 0
+    m_UseGrund: 1
+    m_AppDomainId: Auki posemesh domain id
+    m_MannaSettings:
+      m_ScanningType: 10
+      m_HighScanningFrequency: 0.1
+      m_MidScannningFrequency: 0.3
+      m_LowScanningFrequency: 1
+    m_CameraCullingMask:
+      serializedVersion: 2
+      m_Bits: 519
+    m_HumanSegmentationDepthMode: 0
+    m_HumanSegmentationStencilMode: 0
+    m_EnvironmentDepthMode: 0
+    m_UseThisSessionIdInEditor: 0
+    m_SessionId: 
+  m_RaycastSettings:
+    m_TrackableType: 1
+  m_ConnectionIndicationSettings:
+    m_DisconnectColor: {r: 1, g: 0.11764706, b: 0.11764706, a: 1}
+    m_ConnectingColor: {r: 1, g: 0.7037727, b: 0.31372547, a: 1}
+    m_ConnectColor: {r: 0.5882353, g: 0.8666667, b: 0, a: 1}
+  m_NetworkServiceSettings:
+    m_NetworkMeasurementFrequency: 1
+    m_DisconnectLatency: 10000
+    m_RefreshLatency: 1000
+    m_GoodLatency: 75
+    m_MildLatency: 100
+    m_BadLatency: 150
+  m_VehicleSelectorSettings:
+    m_PageWidth: 500
+    m_MinScale: 0
+    m_MaxScale: 0.8
+    m_VisibilityThreshold: 0.0001
+    m_GridWidth: 0.04
+    m_ScrollMultiplier: 1
+    m_FadeTime: 200
+    m_Vehicles:
+    - {fileID: 11400000, guid: e6291326e0a228f4984d847ea32cada5, type: 2}
+    - {fileID: 11400000, guid: 4cd4d94077f4af440b7c1b4045f8500c, type: 2}
+    - {fileID: 11400000, guid: 64a6569bda5ac79469491329b2d179e0, type: 2}
+    - {fileID: 11400000, guid: 249e6bfb532be564d92b099328f1e5a3, type: 2}
+    - {fileID: 11400000, guid: 461d2ed40bef48b47854180dd05e109d, type: 2}
+    - {fileID: 11400000, guid: 93f504d1808bfb74b97000935af4e12a, type: 2}
+    - {fileID: 11400000, guid: f02d1ca0b84352f42a69c7d12c71ea6e, type: 2}
+    m_SpeedMultiplier: 8
+    m_AutoScrollDecelerationMultiplier: 0.2
+    m_FadeSpeed: 4
+  m_ObstacleSettings:
+    m_Obstacles:
+    - {fileID: 11400000, guid: a67829b03ce9f4cbf90905f6db24a61c, type: 2}
+    - {fileID: 11400000, guid: 90a5ec7f8519f40f499ee3fe70a01593, type: 2}
+    - {fileID: 11400000, guid: 4ac4aece8f6b0414a95f28a21e69744b, type: 2}
+    m_MaxObstacles: 1
+    m_MayhemTowerPlacementArea: {fileID: 6343007010283048048, guid: 71423d335b43b9e43a8dfad144a533d7, type: 3}
+  m_SplashScreenServiceSettings:
+    m_RightsLabel: "\xA92021-{0} Matterless Studios Limited. All Rights Reserved."
+    m_AppStartSound: splash_music
+    m_SkipTime: 1
+    m_AnimationTime: 3
+  m_AudioUiSettings:
+    m_BackId: back
+    m_SelectId: select
+    m_ScrollId: scroll
+    m_CarSpawnId: car_spawn
+    m_ObstacleSpawnId: obstacle_spawn
+    m_BackgroundMusic: background_music
+  m_MenuSettings:
+    m_Master: {fileID: 24300002, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}
+    m_Music: {fileID: 9062110417198211165, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}
+    m_Sfx: {fileID: 377679209690705176, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}
+    m_SupportLanguages: 00000000
+  m_CrownSettings:
+    m_CrownResourcePath: NewEntities/Crown
+    m_CrownOffset:
+      position: {x: 0, y: 4.072, z: 0}
+      rotation: {x: -0.70710677, y: 0, z: 0, w: 0.70710677}
+  m_ScoreSetting:
+    m_ObstacleKill: 0
+    m_LaserKill: 1
+    m_SpeederKill: 1
+    m_KilledDeductRate: 1
+  m_LeaderboardSettings:
+    m_FontSize: 42
+    m_SpaceBetweenLabel: 100
+    m_ShowTop: 3
+    m_SwipeDuration: 0.05
+  m_SpeederSimulationSettings:
+    m_BankFactor: 2
+    m_BankLimit: 15
+    m_BankRate: 50
+    m_OverheatLength: 0.6
+    m_OverheatSlowRate: 2
+    m_BrakingLength: 2
+    m_CrownSlowPercentage: 0.05
+    m_StopTurningDistance: 0.02
+    m_StaticTurningSpeedThreshold: 10
+  m_DashSettings:
+    m_Duration: 0.08
+    m_Rate: 5.25
+    m_Cooldown: 0.75
+    m_Quantity: 3
+    m_Infinite: 0
+  m_ProximityMineSettings:
+    m_ProximityMine: {fileID: 11400000, guid: 7dfe8a6ac7ec2f347bf6245f23748eaf, type: 2}
+    m_Radius: 0.075
+    m_Cooldown: 3
+    m_Quantity: 10
+    m_Duration: 0.1
+    m_Infinite: 0
+  m_WreckingBallMagnetSettings:
+    m_WreckingBallOffset: {x: 0, y: 3.4, z: -5.2}
+    m_WreckingBallProjectile: {fileID: 11400000, guid: 1ecc219c671b10f459b35448efc206fb, type: 2}
+    m_Speed: 0.4
+    m_Cooldown: 3
+    m_MagnetViewResourcePath: MagnetView
+    m_Quantity: 1
+    m_Duration: 0
+    m_Infinite: 0
+  m_FlamethrowerSettings:
+    m_Duration: 3
+    m_FlameThrowerViewResourcePath: NewEntities/FlameThrowerView
+    m_FlameOffset:
+      position: {x: 0, y: 0, z: 2.25}
+      rotation: {x: 0, y: 0, z: 0, w: 0}
+    m_Cooldown: 3
+    m_Quantity: 3
+    m_Infinite: 0
+  m_LaserServiceSettings:
+    m_Cooldown: 1.2
+    m_LaserViewResourcePath: PFB_PU_Laser_00
+    m_Quantity: 0
+    m_LaserLayerMask:
+      serializedVersion: 2
+      m_Bits: 256
+    m_LaserMaxLength: 2.5
+    m_ActivationDuration: 0.1
+    m_LaserPropagationDuration: 0.12
+    m_LaserChargeDuration: 0.12
+    m_LaserAttackDuration: 0.1
+    m_LaserDecayDuration: 0.8
+    m_LaserResolution: 72
+    m_Infinite: 1
+    m_LaserStartColor: {r: 103.96829, g: 103.96829, b: 103.96829, a: 0}
+    m_LaserEndColor: {r: 3.6235294, g: 1.7249774, b: 0, a: 0}
+    m_LaserDecayColor: {r: 0.084905684, g: 0.084905684, b: 0.084905684, a: 0}
+  m_RespawnSettings:
+    m_MaxRespawns: 20
+    m_SpawnRechargeDuration: 100
+  m_PlaceableSelectorSettings:
+    m_PageWidth: 500
+    m_MinScale: 0
+    m_MaxScale: 0.8
+    m_VisibilityThreshold: 0.0001
+    m_GridWidth: 0.04
+    m_ScrollMultiplier: 1
+    m_FadeTime: 200
+    m_Placeables:
+    - {fileID: 11400000, guid: 7d6702bb1aa56754ca8fb4c9c7f1fc4a, type: 2}
+    - {fileID: 11400000, guid: 97f15283efee9b847a28eb1f08e38e8d, type: 2}
+    - {fileID: 11400000, guid: d39a1508c9e3fd44998310d13a6b2529, type: 2}
+    - {fileID: 11400000, guid: 23ad7ef110c50e74c9f81fd3f8f2c4c7, type: 2}
+    - {fileID: 11400000, guid: 42d16a544d58b624eaf4d00c2b112b3e, type: 2}
+    - {fileID: 11400000, guid: b8949a2d4fc8f4824ade7384bea926af, type: 2}
+    - {fileID: 11400000, guid: 1d185c2d72faf4cee8887e75913dfcf9, type: 2}
+    - {fileID: 11400000, guid: ec8f4f75821064a89b3323c9104c2710, type: 2}
+    - {fileID: 11400000, guid: 46266b9d72f4a4ed8bbc99cdc1042803, type: 2}
+    m_MayhemObstacle: {fileID: 11400000, guid: 46266b9d72f4a4ed8bbc99cdc1042803, type: 2}
+    m_FFAObstacle: {fileID: 11400000, guid: 7d6702bb1aa56754ca8fb4c9c7f1fc4a, type: 2}
+  m_EquipmentServiceSettings:
+    m_DebugMenuAvailableEqupimentStates: 04
+  m_ShadowCloneSettings:
+    m_CooldownDuration: 8
+    m_CloneDuration: 8
+    m_Quantity: 3
+    m_CloneMaterial: {fileID: 2100000, guid: 7cee9415029d140b8b76253ae2742e3e, type: 2}
+    m_CloneVFX: {fileID: 6698510567400396433, guid: 6cfec8343364c4d46a8e47a6b4b4eb83, type: 3}
+    m_Infinite: 0
+  m_PowerUpSpawnPointsSettings:
+    m_CooldownDuration: 10
+  m_HonkSettings:
+    m_Cooldown: 0.3
+    m_Duration: 0.3
+    m_Quantity: 0
+    m_Infinite: 1
+  m_RendererSettings:
+    m_DimmRendererFeature: {fileID: 4545796370496537532, guid: 23dcf09f252b3a44fb5c892803e02dee, type: 2}
+    m_MaximumDimm: 0.4
+    m_DimmSpeed: 0.8
+  m_NameTagSettings:
+    m_NameTags:
+    - DRAGONFLY
+    - MAVERICK
+    - THUNDER
+    - PANTHER
+    - COBRA
+    - WOLFPACK
+    - CYCLONE
+    - PHOENIX
+    - GHOST
+    - VIPER
+    - HURRICANE
+    - AVALANCHE
+    - RAPTOR
+    - TITAN
+    - CRUSADER
+    - SPITFIRE
+    - HAVOC
+    - SABRE
+    - LIGHTNING
+    - HAMMER
+    - RAZOR
+    - STORM
+    - FALCON
+    - BULLET
+    - SCORPION
+    - GOLIATH
+    - CHIMERA
+    - RIKER
+    - GRIFFIN
+    - DELTA
+    - ECHO
+    - TANGO
+    - FOXTROT
+    - CHARLIE
+    - ALPHA
+    - BRAVO
+    - LIMA
+    - GOLF
+    - VICTOR
+    - SIERRA
+    - ROMEO
+    - HOTEL
+    - INDIA
+    - JULIET
+    - KILO
+    - NOVEMBER
+    - OSCAR
+    - PAPA
+    m_nameTagResourcePath: NewEntities/NameTag
+    m_NameTagOffset: {x: 0, y: 4, z: 0}
+    m_fontSize: 52
+  m_NPCEnemyServiceSettings:
+    m_Enemies:
+    - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+    - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+  m_MayhemModeSettings:
+    m_WaveSettings:
+    - spawnFrequencyMax: 1
+      spawnFrequencyMin: 1
+      maxNrOfEnemies: 1
+      spawnPointCount: 1
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+    - spawnFrequencyMax: 1
+      spawnFrequencyMin: 1
+      maxNrOfEnemies: 3
+      spawnPointCount: 3
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+    - spawnFrequencyMax: 0.9
+      spawnFrequencyMin: 0.5
+      maxNrOfEnemies: 5
+      spawnPointCount: 5
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+    - spawnFrequencyMax: 0.5
+      spawnFrequencyMin: 0.5
+      maxNrOfEnemies: 2
+      spawnPointCount: 2
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+    - spawnFrequencyMax: 1
+      spawnFrequencyMin: 0.4
+      maxNrOfEnemies: 4
+      spawnPointCount: 4
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+      - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+    - spawnFrequencyMax: 1
+      spawnFrequencyMin: 1
+      maxNrOfEnemies: 7
+      spawnPointCount: 7
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+      - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+    - spawnFrequencyMax: 1.2
+      spawnFrequencyMin: 0.8
+      maxNrOfEnemies: 10
+      spawnPointCount: 10
+      onlyTheseEnemyTypes:
+      - {fileID: 11400000, guid: 9f5ccce5c710a4921b81348a941c1446, type: 2}
+      - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+      - {fileID: 11400000, guid: a02f976fcb2554be68ce9b3b90a30e17, type: 2}
+    m_TimeBetweenWaves: 3
+    m_SpawnIncreasePerWave: 0
+    m_TargetMaxHealth: 5
+    m_PlayAreaRadius: 50
+  m_WorldScaleSettings:
+    m_WorldScale: 0.7
+  m_BackgroundMusic: {fileID: 8300000, guid: 146c59b023d3349e79421c652ab9647c, type: 3}
+  m_MusicMixerGroup: {fileID: 9062110417198211165, guid: 289e6112eba7147a89d27c4b4daaeab1, type: 2}
+  m_ARPlaneOverlaySettings:
+    m_ShowPlaneMaterialsHorizontal:
+    - {fileID: 2100000, guid: 3794bb94ca1294abba2a8a377d623dab, type: 2}
+    - {fileID: 2100000, guid: f6f094b2ab77846c7aebc92d1bc9e9df, type: 2}
+    - {fileID: 2100000, guid: 9a9bb5051c32e471b98f05d9636708ad, type: 2}
+    - {fileID: 2100000, guid: 970488b6e7772495385f8627313ce43f, type: 2}
+    - {fileID: 2100000, guid: b6d2571b4155c4a22b12b8312063b8f2, type: 2}
+    m_ShowPlaneMaterialsVertical:
+    - {fileID: 2100000, guid: 4544a1140944547a98457e345c6c9be8, type: 2}
+    - {fileID: 2100000, guid: 356683fa79c454b1784467d4f6660b39, type: 2}
+    - {fileID: 2100000, guid: d710e8adf82fb4e70b03f2268b4697b7, type: 2}
+    - {fileID: 2100000, guid: c3a58ccd69e1f4a7f9db115e752306c4, type: 2}
+    - {fileID: 2100000, guid: 6cf85f86c47b64b7cafbfb8ea424738d, type: 2}
+    m_HidePlaneMaterial: {fileID: 2100000, guid: f0b7cca412e754b2b80d5d7f6c614d61, type: 2}
