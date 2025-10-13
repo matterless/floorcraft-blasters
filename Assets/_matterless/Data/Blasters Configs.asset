@@ -53,6 +53,10 @@ MonoBehaviour:
       mayhem mode on any floor surface.'
     m_ProjectUrl: https://www.aukilabs.com/solutions/software/floorcraft
     m_ProjectIconUrl: https://raw.githubusercontent.com/matterless/floorcraft-blasters/develop/Assets/_matterless/Graphics/AppIcons/Blasters-AppIcon.png
+  m_ChainSettings:
+    m_NftContractAddress: Get your NFT Contract Address
+    m_RpcEndpoint: https://base-mainnet.g.alchemy.com/v2/
+    m_ApiKey: Get your Alchemy API Key from https://alchemy.com
   m_RaycastSettings:
     m_TrackableType: 1
   m_ConnectionIndicationSettings:
