@@ -7,7 +7,7 @@ namespace Matterless.Floorcraft
     {
         RestController CreateController(string name);
 
-        string GetLookingGlassProtocolFullUrl(string endPoint);
+        string GetDdsUrl(string endPoint);
 
         void UnsecureGet(string url, Action<string> onSuccess,
             Action<RestService.ErrorResponse> onError = null);
@@ -19,6 +19,18 @@ namespace Matterless.Floorcraft
             Action<RestService.ErrorResponse> onError = null);
 
         void UnsecureDelete(string url, string payload, Action<string> onSuccess,
+            Action<RestService.ErrorResponse> onError = null);
+        
+        void SecureGet(string url, Action<string> onSuccess,
+            Action<RestService.ErrorResponse> onError = null);
+
+        void SecurePostJson(string url, string payload, Action<string> onSuccess,
+            Action<RestService.ErrorResponse> onError = null);
+
+        void SecurePutJson(string url, string payload, Action<string> onSuccess,
+            Action<RestService.ErrorResponse> onError = null);
+
+        void SecureDelete(string url, string payload, Action<string> onSuccess,
             Action<RestService.ErrorResponse> onError = null);
 
         void OnErrorResponse(Action onRefreshAuth, Action<RestService.ErrorResponse> onError,

@@ -11,7 +11,7 @@ namespace Matterless.Floorcraft
 {
     public class HeartbeatService : IHeartbeatService, ITickable
     {
-        private const string POST_HEARTBEAT_SESSION_ENDPOINT = "v2/shared_sessions/{0}/heartbeat";
+        private const string POST_HEARTBEAT_SESSION_ENDPOINT = "api/v1/shared-sessions/{0}/heartbeat";
         private const string DOMAIN_ERROR_TITLE = "DOMAIN_ERROR_TITLE";
         private const string DOMAIN_SESSION_EXPIRED_LABEL = "DOMAIN_SESSION_EXPIRED_LABEL";
         private const string LEAVE_BUTTON_LABEL = "LEAVE_BUTTON_LABEL";
@@ -126,7 +126,7 @@ namespace Matterless.Floorcraft
             // cache domain session unique id
             m_CurrentUniqueSessionId = evt.uniqueSessionId;
             // cache end point url
-            m_CurrentHearbeatUrl = m_RestService.GetLookingGlassProtocolFullUrl(string.Format(POST_HEARTBEAT_SESSION_ENDPOINT, m_CurrentUniqueSessionId));
+            m_CurrentHearbeatUrl = m_RestService.GetDdsUrl(string.Format(POST_HEARTBEAT_SESSION_ENDPOINT, m_CurrentUniqueSessionId));
 
             if (!string.IsNullOrEmpty(evt.threshold) 
                 && TryGetMiliseconds(evt.threshold, out var domainThreshold))
@@ -148,8 +148,8 @@ namespace Matterless.Floorcraft
             Debug.Log($"HeartbeatService.Beat {sessionId}");
 
             m_CanRespondHeartbeat = true;
-            // post session heartbeat
-            m_RestService.UnsecurePostJson(
+            // post session heartbeat (with DDS authentication)
+            m_RestService.SecurePostJson(
                 // url
                 m_CurrentHearbeatUrl,
                 // payload
@@ -169,9 +169,24 @@ namespace Matterless.Floorcraft
             if (!m_AukiWrapper.isConnected || !m_CanRespondHeartbeat)
                 return;
 
+            // Check if we have a valid session before comparing
+            var currentSession = m_AukiWrapper.GetSession();
+            if (currentSession == null)
+            {
+                Debug.LogWarning("HeartbeatService: No active Auki session, cannot verify domain session");
+                return;
+            }
+
+            // Check if session response has valid session_id
+            if (string.IsNullOrEmpty(sessionResponse?.session_id))
+            {
+                Debug.LogWarning("HeartbeatService: Heartbeat response has no session_id");
+                return;
+            }
+
             // We check on beat success that if we are still connected to a session and if that session is the same with the domain session
             // It will *nearly* always be same while playing the game normally but it may change if we take the app to the background for a while
-            if (sessionResponse.session_id != m_AukiWrapper.GetSession().Id)
+            if (sessionResponse.session_id != currentSession.Id)
             {
                 Debug.Log("Domain session is the different with our session!");
                 // Should we show to user the error and force them to connect new session?

@@ -162,7 +162,13 @@ namespace Matterless.Floorcraft
         public void Join(Action onComplete = null, Action<string> onFail = null)
         {
             Debug.Log("new session");
-            m_ConjureKit.Connect(session=>onComplete?.Invoke(), onFail);
+            m_ConjureKit.Connect(
+                session => {
+                    onComplete?.Invoke();
+                }, 
+                (error) => {
+                    onFail?.Invoke(error);
+                });
         }
 
         public void Join(string sessionId, Action onComplete = null, Action<string> onFail = null)

@@ -64,6 +64,7 @@ namespace Matterless.Floorcraft
             container.Bind<IAudioService, AudioService>(m_AudioDatabase, false);
             container.Bind<AudioUiService>(m_AppConfigs.audioUiSettings);
             container.Bind<ILocalisationService, LocalisationService>();
+            container.Bind<IDdsAuthenticationService, DdsAuthenticationService>(m_AppConfigs.aukiSettings);
             container.Bind<IRestService, RestService>();
             container.Bind<IInputDialogueService, InputDialogueService>();
 

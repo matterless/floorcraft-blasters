@@ -1,5 +1,6 @@
 using System;
 using Matterless.Localisation;
+using UnityEngine;
 
 namespace Matterless.Floorcraft
 {
@@ -17,6 +18,7 @@ namespace Matterless.Floorcraft
         private readonly IMannaService m_MannaService;
         private readonly AudioUiService m_AudioUiService;
         private readonly IAnalyticsService m_AnalyticsService;
+        private readonly IRendererService m_RendererService;
 
         public Action onHideLighthouse;
 
@@ -27,11 +29,13 @@ namespace Matterless.Floorcraft
             IAnalyticsService analyticsService,
             AudioUiService setting,
             HeaderUiService headerUiService,
-            ConnectionService connectionService)
+            ConnectionService connectionService,
+            IRendererService rendererService)
         {
             m_AukiWrapper = aukiWrapper;
             m_MannaService = mannaService;
             m_AudioUiService = setting;
+            m_RendererService = rendererService;
             headerUiService.onMultiplayerButtonClicked += ShowLightHouse;
             m_AnalyticsService = analyticsService;
             m_View = QrCodeUiView.Create("UIPrefabs/UIP_QrCodeUiView").Init();
@@ -61,6 +65,7 @@ namespace Matterless.Floorcraft
 
         private void ShowLightHouse()
         {
+            m_RendererService.DisableDimm(); // Enable AR camera view
             m_MannaService.ShowQRCode();
             m_View.Show();
             PlayShareSound();
@@ -70,6 +75,7 @@ namespace Matterless.Floorcraft
 
         private void HideLightHouse()
         {
+            m_RendererService.EnableDimm(); // Re-enable dimmer for intro screen
             m_MannaService.HideQRCode();
             m_View.Hide();
             PlayHideSound();

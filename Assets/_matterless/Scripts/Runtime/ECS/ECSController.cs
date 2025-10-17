@@ -54,7 +54,6 @@ namespace Matterless.Floorcraft
 
             if(m_ComponentAdded == m_ComponentModelFactoryFunctions.Count)
             {
-
                 Debug.Log("~~~~~~ ECS CONTROLLER INIT COMPLETED ~~~~~~");
                 m_ComponentInitInProgress = false;
                 onStateChanged?.Invoke(ECSState.Succeed);
@@ -71,6 +70,7 @@ namespace Matterless.Floorcraft
 
             m_OnSuccess = onSuccess;
             m_OnError = onError;
+            m_ComponentInitInProgress = true;
 
             onStateChanged?.Invoke(ECSState.Initialising);
 
@@ -89,6 +89,13 @@ namespace Matterless.Floorcraft
             // all these methods are asynch
             // which means that we need to handle what happens when we leave the session before all these are finalised
 
+            if (entityTypes.Count == 0)
+            {
+                m_ComponentInitInProgress = false;
+                onStateChanged?.Invoke(ECSState.Succeed);
+                m_OnSuccess?.Invoke();
+                return;
+            }
 
             foreach (var typeName in entityTypes)
             {
@@ -162,8 +169,17 @@ namespace Matterless.Floorcraft
             if (m_CurrentSession == null)
                 throw new Exception("Session is null");
 
+            var entities = session.GetEntities();
+            
+            // CRITICAL FIX: If no entities exist, immediately mark this component as done
+            if (entities.Count == 0)
+            {
+                IncreaseAndCheckECSInitProgress();
+                return;
+            }
+
             // for each entity
-            foreach (var entity in session.GetEntities())
+            foreach (var entity in entities)
             {
                 // get list of entities components for this component type
                 session.GetComponents(typeId, componentList =>

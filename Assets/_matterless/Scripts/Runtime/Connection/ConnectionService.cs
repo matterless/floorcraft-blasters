@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using Auki.ConjureKit;
 using Matterless.Inject;
@@ -28,6 +28,8 @@ namespace Matterless.Floorcraft
         private State m_CurrentState;
         private bool m_IsConnecting;
         private float m_ConnectingTimer;
+        private bool m_IsInitializingECS;
+        private float m_ECSInitTimer;
 
         public ConnectionService(
             IAukiWrapper aukiWrapper,
@@ -100,16 +102,22 @@ namespace Matterless.Floorcraft
 
         private void OnSessionJoined(Session session)
         {
+            Debug.Log($"[CONNECTION] OnSessionJoined - Session ID: {session.Id}");
             // cache session id
             connectedSessionId = session.Id;
             // invoke event
             onConnectionStateChanged?.Invoke(ConnectionState.SessionInitialising);
             // start ECS initialisation
+            m_IsInitializingECS = true;
+            m_ECSInitTimer = 0f;
             m_ECSController.Initialise(session, OnECSInitalisedSuccessfully, OnECSErrorInitialisation);
         }
 
         private void OnECSInitalisedSuccessfully()
         {
+            Debug.Log("[CONNECTION] ✓ ECS Initialized Successfully");
+            m_IsInitializingECS = false;
+            m_ECSInitTimer = 0f;
             isReady = true;
             // invoke event
             onConnectionStateChanged?.Invoke(ConnectionState.Connected);
@@ -117,7 +125,10 @@ namespace Matterless.Floorcraft
 
         private void OnECSErrorInitialisation()
         {
-
+            Debug.LogError("[CONNECTION] ❌ ECS Initialization Failed - Reconnecting...");
+            m_IsInitializingECS = false;
+            m_ECSInitTimer = 0f;
+            LeaveSessionAndReconnect(2);
         }
 
         private void OnApplicationPause(bool pauseStatus)
@@ -223,6 +234,20 @@ namespace Matterless.Floorcraft
 
         public void Tick(float deltaTime, float unscaledDeltaTime)
         {
+            // Timeout for ECS initialization (Android can hang here)
+            if (m_IsInitializingECS)
+            {
+                m_ECSInitTimer += deltaTime;
+                
+                if (m_ECSInitTimer >= 15f) // 15 second timeout
+                {
+                    Debug.LogError($"[CONNECTION] ❌ ECS Initialization timeout after {m_ECSInitTimer} seconds - Reconnecting...");
+                    m_IsInitializingECS = false;
+                    m_ECSInitTimer = 0f;
+                    LeaveSessionAndReconnect(2);
+                }
+            }
+            
             /*if (m_IsConnecting)
             {
                 m_ConnectingTimer += deltaTime;

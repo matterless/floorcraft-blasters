@@ -65,7 +65,7 @@ namespace Matterless.Floorcraft
             // get assets from backend
             m_RestService.UnsecurePostJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(POST_QUERY_DOMAIN_ASSET_ENDPOINT),
+                m_RestService.GetDdsUrl(POST_QUERY_DOMAIN_ASSET_ENDPOINT),
                 // payload
                 m_QueryPostPayload.CreatePayload(appId, domainId),
                 // response
@@ -85,7 +85,7 @@ namespace Matterless.Floorcraft
             // get assets from backend
             m_RestService.UnsecurePostJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(POST_DOMAIN_ASSET_ENDPOINT),
+                m_RestService.GetDdsUrl(POST_DOMAIN_ASSET_ENDPOINT),
                 // payload
                 m_AssetPostPayload.CreatePayload(appId, domainId, data),
                 // response
@@ -106,7 +106,7 @@ namespace Matterless.Floorcraft
             // get assets from backend
             m_RestService.UnsecurePutJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(string.Format(PUT_DOMAIN_ASSET_ENDPOINT, uniqueSessionId)),
+                m_RestService.GetDdsUrl(string.Format(PUT_DOMAIN_ASSET_ENDPOINT, uniqueSessionId)),
                 // payload
                 m_AssetPutPayload.CreatePayload(updatedAt, domainId, data),
                 // response
@@ -124,7 +124,7 @@ namespace Matterless.Floorcraft
             // get assets from backend
             m_RestService.UnsecureDelete(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(DELETE_DOMAIN_ASSET_ENDPOINT),
+                m_RestService.GetDdsUrl(DELETE_DOMAIN_ASSET_ENDPOINT),
                 // payload
                 m_AssetDeletePayload.CreatePayload(DomainService.APP_ID),
                 // response

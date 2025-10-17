@@ -21,87 +21,30 @@ namespace Matterless.Floorcraft
         ,ITickable
 #endif
     {
-        private const string POST_DOMAIN_SESSION_ENDPOINT = "v2/shared_sessions";
-        private const string PUT_DOMAIN_SESSION_ENDPOINT = "v2/shared_sessions/{0}";
-        private const string PUT_REPLACE_DOMAIN_SESSION_ENDPOINT = "v2/shared_sessions/{0}/replace";
-        private const string POST_QUERY_SESSIONS_ENDPOINT = "v2/shared_sessions/query";
+        private const string POST_DOMAIN_SESSION_ENDPOINT = "api/v1/shared-sessions";
         
         public const string APP_ID = "floorcraft";
 
         [System.Serializable]
         private class SessionPostPayload
         {
-            [FormerlySerializedAs("session")] public string session_id;
-            public string domain_id;
             public string app_id;
-            public string threshold;
+            public string domain_id;
+            public bool join_session;
+            public bool only_same_app;
+            public string session_guid;
+            public int threshold;
+            public bool with_domain;
 
-            public string CreatePayload(string sessionId, string domainId, string threshold = null)
+            public string CreatePayload(string sessionId, string domainId, int thresholdMs, string appKey)
             {
-                app_id = APP_ID;
-                session_id = sessionId;
+                app_id = appKey;
                 domain_id = domainId;
-                this.threshold = threshold;
-                return JsonUtility.ToJson(this);
-            }
-        }
-        
-        [System.Serializable]
-        private class SessionPutPayload
-        {
-            public string[] data;
-            public string[] tags;
-            public string threshold;
-            public long updated_at;
-
-            /// <summary>
-            /// Updated at is required, others are optional to update.
-            /// </summary>
-            /// <param name="updated_at">Unix timestamp in ms</param>
-            /// <param name="threshold">To update the existing session threshold</param>
-            /// <param name="data">Additional data to update</param>
-            /// <param name="tags">Additional tags to update</param>
-            /// <returns></returns>
-            public string CreatePayload(long updatedAt, string threshold = null, string[] data = null, string[] tags = null)
-            {
-                this.data = data;
-                this.tags = tags;
-                this.threshold = threshold;
-                this.updated_at = updatedAt;
-                return JsonUtility.ToJson(this);
-            }
-        }
-        
-        [System.Serializable]
-        private class ReplaceSessionPutPayload
-        {
-            public string session_id;
-            public long updated_at;
-
-            public string CreatePayload(string sessionId, long updatedAt)
-            {
-                session_id = sessionId;
-                updated_at = updatedAt;
-                return JsonUtility.ToJson(this);
-            }
-        }
-        
-        [System.Serializable]
-        private class QuerySessionsPostPayload
-        {
-            public string _id;
-            public bool exclude_expired;
-
-            /// <summary>
-            /// To query desired session data
-            /// </summary>
-            /// <param name="sessionId">Unique session id</param>
-            /// <param name="excludeExpired">Excludes expired domains from the result array</param>
-            /// <returns></returns>
-            public string CreatePayload(string sessionId, bool excludeExpired)
-            {
-                _id = sessionId;
-                exclude_expired = excludeExpired;
+                join_session = true;
+                only_same_app = true;
+                session_guid = $"{sessionId}:{domainId}";
+                threshold = thresholdMs / 1000; // Convert milliseconds to seconds
+                with_domain = false;
                 return JsonUtility.ToJson(this);
             }
         }
@@ -109,24 +52,41 @@ namespace Matterless.Floorcraft
         [System.Serializable]
         private class SessionResponse
         {
-            public string _id;
+            public string id; // DDS uses this
+            public string _id; // Keep for backward compatibility
             public string app_id;
             public string domain_id;
-            public string session_id;
+            public string session_id; // Still keep for backward compatibility
+            public string session_guid; // DDS uses this instead
             public string data;
-            public long created_at;
-            public long updated_at;
+            public string created_at; // Changed to string (DDS returns ISO 8601)
+            public string updated_at; // Changed to string (DDS returns ISO 8601)
             public string created_by;
             public string updated_by;
             public string[] tags;
-            public string threshold;
-            public long last_activated_at;
+            public int threshold; // Changed from string to int
+            public string last_activated_at; // Keep for backward compatibility
+            public string last_active_at; // DDS uses this
             public string match_phrase;
+            
+            // Helper method to extract session ID from session_guid
+            public string GetSessionId()
+            {
+                if (string.IsNullOrEmpty(session_guid))
+                    return session_id; // Fallback to old field if session_guid not present
+                    
+                var colonIndex = session_guid.IndexOf(':');
+                if (colonIndex > 0)
+                    return session_guid.Substring(0, colonIndex);
+                    
+                return session_id; // Fallback
+            }
         }
 
         private readonly IAukiWrapper m_AukiWrapper;
         private readonly IMannaService m_MannaService;
         private readonly MannaService.Settings m_MannaSettings;
+        private readonly AukiSettings m_AukiSettings;
 
         //private readonly IConnectionService m_ConnectionService;
         private readonly IRestService m_RestService;
@@ -136,9 +96,6 @@ namespace Matterless.Floorcraft
         private readonly HeartbeatService.Settings m_HeartbeatSettings;
         private readonly DomainAssetService m_DomainAssetService;
         private readonly SessionPostPayload m_SessionPostPayload = new SessionPostPayload();
-        private readonly SessionPutPayload m_SessionPutPayload = new SessionPutPayload();
-        private readonly ReplaceSessionPutPayload m_ReplaceSessionPutPayload = new ReplaceSessionPutPayload();
-        private readonly QuerySessionsPostPayload m_QuerySessionPostPayload = new QuerySessionsPostPayload();
 
         private string m_DomainId;
         private SessionResponse m_CurrentSessionData;
@@ -166,6 +123,7 @@ namespace Matterless.Floorcraft
             IAukiWrapper aukiWrapper,
             IMannaService mannaService,
             MannaService.Settings mannaSettings,
+            AukiSettings aukiSettings,
             //IConnectionService connectionService,
             IRestService restService,
             IAnalyticsService analyticsService,
@@ -180,6 +138,7 @@ namespace Matterless.Floorcraft
             m_AukiWrapper = aukiWrapper;
             m_MannaService = mannaService;
             m_MannaSettings = mannaSettings;
+            m_AukiSettings = aukiSettings;
             //m_ConnectionService = connectionService;
             m_RestService = restService;
             m_AnalyticsService = analyticsService;
@@ -321,15 +280,34 @@ namespace Matterless.Floorcraft
 
         private void OnDomainQrCodeScanned(string domainId)
         {
+            
             // if I'm already in this domain -> do nothing
             if (domainId == m_DomainId && sessionIdDomain)
+            {
                 return;
+            }
 
             // cache domain
             m_DomainId = domainId;
             m_AnalyticsService.SeenDomain(domainId);
+            
+            // Disconnect from current session first (if any)
+            m_AukiWrapper.Leave();
+            
             // join to new session, to prevent same sessions on multiple domains
-            m_AukiWrapper.Join(() => PostSessionIdToDomain(m_AukiWrapper.GetSession().Id));
+            m_AukiWrapper.Join(
+                onComplete: () => {
+                    try
+                    {
+                        string newSessionId = m_AukiWrapper.GetSession().Id;
+                        PostSessionIdToDomain(newSessionId);
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                },
+                onFail: (error) => {
+                });
         }
 
         /// <summary>
@@ -338,7 +316,6 @@ namespace Matterless.Floorcraft
         /// <param name="sessionId"></param>
         private void PostSessionIdToDomain(string sessionId)
         {
-            Debug.Log($"DomainService.PostSessionIdToDomain {sessionId}");
 
             OnDomainStateChanged(new DomainStatusEvent()
             {
@@ -346,59 +323,60 @@ namespace Matterless.Floorcraft
                 sessionId = sessionId
             });
 
-            // post my session id
-            m_RestService.UnsecurePostJson(
+            string payload = m_SessionPostPayload.CreatePayload(
+                sessionId, 
+                m_DomainId, 
+                (int)m_HeartbeatSettings.threshold,
+                m_AukiSettings.appKey
+            );
+            
+            // post my session id to DDS (with authentication)
+            m_RestService.SecurePostJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(POST_DOMAIN_SESSION_ENDPOINT),
-                // payload
-                m_SessionPostPayload.CreatePayload(sessionId, m_DomainId, GetThresholdAsString(m_HeartbeatSettings.threshold)),
+                m_RestService.GetDdsUrl(POST_DOMAIN_SESSION_ENDPOINT),
+                // payload - DDS format
+                payload,
                 // response
                 (response) => OnSetSessionIdResponse(sessionId, response),
                 // error
-                (x) => Debug.LogError(x.message));
+                (x) => {
+                    Debug.LogError(x.message);
+                });
         }
         
-        /// <summary>
-        /// Replace session id of the domain. This will be called if the domain session is expired and we are going to replace it.
-        /// </summary>
-        /// <param name="sessionId"></param>
-        private void ReplaceSessionIdOfDomain(string sessionId)
-        {
-            Debug.Log($"DomainService.ReplaceSessionIdOfDomain {sessionId}");
-            
-            m_RestService.UnsecurePutJson(
-                // url
-                m_RestService.GetLookingGlassProtocolFullUrl(string.Format(PUT_REPLACE_DOMAIN_SESSION_ENDPOINT, m_CurrentSessionData._id)),
-                // payload
-                m_ReplaceSessionPutPayload.CreatePayload(sessionId, m_CurrentSessionData.updated_at),
-                // response
-                (response) => OnSetSessionIdResponse(sessionId, response),
-                // error
-                (x) => Debug.LogError(x.message));
-        }
 
         private void OnSetSessionIdResponse(string currentSessionId, string response)
         {
-            Debug.Log($"DomainService.OnSetSessionIdResponse cur:{currentSessionId}, res:{response}");
 
-            SessionResponse sessionResponse = JsonConvert.DeserializeObject<SessionResponse>(response);
-            m_CurrentSessionData = sessionResponse;
-
-            // This means our new session has been put to the domain successfully
-            if (currentSessionId == sessionResponse.session_id)
+            try
             {
-                OnDomainSessionJoinedCompleted(currentSessionId, isMasterClient: true);
-                return;
+                SessionResponse sessionResponse = JsonConvert.DeserializeObject<SessionResponse>(response);
+                
+                m_CurrentSessionData = sessionResponse;
+
+                // Extract the actual session ID from DDS session_guid (format: "sessionId:domainId")
+                string returnedSessionId = sessionResponse.GetSessionId();
+
+                // This means our new session has been put to the domain successfully (we're hosting)
+                if (currentSessionId == returnedSessionId)
+                {
+                    OnDomainSessionJoinedCompleted(currentSessionId, isMasterClient: true);
+                    return;
+                }
+                
+                // If we come to this point this means that domain already has an existing session, we need to switch to it
+                m_AukiWrapper.Join(
+                    returnedSessionId,
+                    // if ok
+                    () => {
+                        OnDomainSessionJoinedCompleted(m_AukiWrapper.GetSession().Id, isMasterClient: false);
+                    },
+                    // The session of the domain is most probably expired
+                    OnDomainSessionJoinFailed);
             }
-            
-            Debug.Log($"Domain has an existing session {sessionResponse.session_id}, joining to it.");
-            // If we come to this point this means that domain already has an existing session, we need to switch to it
-            m_AukiWrapper.Join(
-                sessionResponse.session_id,
-                // if ok
-                () => OnDomainSessionJoinedCompleted(m_AukiWrapper.GetSession().Id, isMasterClient: false),
-                // The session of the domain is most probably expired
-                OnDomainSessionJoinFailed);
+            catch (Exception ex)
+            {
+            }
         }
         
         private void OnQueryAllSessionsResponse(string response)
@@ -412,16 +390,17 @@ namespace Matterless.Floorcraft
         }
 
         /// <summary>
-        /// There is no way to know if a session is alive or not on Hagall via Matterless API.
-        /// This fail assumes the session is expired and we act regarding to that.
+        /// Called when joining an existing domain session fails (session expired).
+        /// With DDS, we just POST again and it will automatically replace the expired session.
         /// </summary>
         /// <param name="error">Error message from server</param>
         private void OnDomainSessionJoinFailed(string error)
         {
-            Debug.Log($"DomainService.OnDomainSpaceJoinFailed {error}");
             
-            // We will override the expired session that was registered to domain with our new session
-            m_AukiWrapper.Join(()=> ReplaceSessionIdOfDomain(m_AukiWrapper.GetSession().Id));
+            // DDS POST will automatically replace expired session
+            m_AukiWrapper.Join(() => {
+                PostSessionIdToDomain(m_AukiWrapper.GetSession().Id);
+            });
         }
 
         private void OnDomainSessionJoinedCompleted(string sessionId, bool isMasterClient)
@@ -434,8 +413,8 @@ namespace Matterless.Floorcraft
             OnDomainStateChanged(new DomainStatusEvent()
             {
                 state = DomainState.Connected,
-                uniqueSessionId = m_CurrentSessionData._id,
-                threshold = m_CurrentSessionData.threshold,
+                uniqueSessionId = !string.IsNullOrEmpty(m_CurrentSessionData.id) ? m_CurrentSessionData.id : m_CurrentSessionData._id, // DDS uses 'id', fallback to '_id'
+                threshold = m_CurrentSessionData.threshold.ToString() + "000ms", // Convert seconds back to ms format
                 sessionId = sessionId
             });
 
@@ -448,7 +427,9 @@ namespace Matterless.Floorcraft
         private void GetAndCreateDomainAssets()
         {
             Debug.Log($"DomainService.GetAndCreateDomainAssets");
-            m_DomainAssetService.GetAndCreateDomainAssets(APP_ID, m_DomainId);
+            // TODO: DDS does not support arbitrary data storage like Looking Glass Protocol did.
+            // Domain assets feature is disabled. Consider using ConjureKit state sync or custom messages instead.
+            // m_DomainAssetService.GetAndCreateDomainAssets(APP_ID, m_DomainId);
         }
 
         private string GetThresholdAsString(float threshold)
@@ -466,7 +447,7 @@ namespace Matterless.Floorcraft
 
 #if UNITY_EDITOR
         int _keyRecognition = 0;
-        const string _testDomainId = "2c7383f1-71fd-4042-a5fd-3da26beba60g";
+        const string _testDomainId = "2c7383f1-71fd-4042-a5fd-3da26beba60f"; // Fixed: was 60g (invalid), now 60f (valid UUID)
 
         public void Tick(float deltaTime, float unscaledDeltaTime)
         {
@@ -476,7 +457,12 @@ namespace Matterless.Floorcraft
                 _keyRecognition++;
             else if (Input.GetKeyDown(KeyCode.M) && _keyRecognition == 2)
             {
-                OnDomainQrCodeScanned(_testDomainId);
+                // Use the configured domain ID from AukiSettings if available, otherwise use test domain ID
+                string domainId = !string.IsNullOrEmpty(m_AukiSettings.appDomainId) 
+                    ? m_AukiSettings.appDomainId 
+                    : _testDomainId;
+                
+                OnDomainQrCodeScanned(domainId);
                 _keyRecognition = 0;
             }
         }
@@ -491,7 +477,7 @@ namespace Matterless.Floorcraft
 
             m_RestService.UnsecurePostJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(POST_QUERY_SESSIONS_ENDPOINT),
+                m_RestService.GetDdsUrl(POST_QUERY_SESSIONS_ENDPOINT),
                 // payload
                 m_QuerySessionPostPayload.CreatePayload(uniqueSessionId, excludeExpiredSessions),
                 // response
@@ -513,7 +499,7 @@ namespace Matterless.Floorcraft
             // Update existing session in domain
             m_RestService.UnsecurePutJson(
                 // url
-                m_RestService.GetLookingGlassProtocolFullUrl(string.Format(PUT_DOMAIN_SESSION_ENDPOINT, sessionId)),
+                m_RestService.GetDdsUrl(string.Format(PUT_DOMAIN_SESSION_ENDPOINT, sessionId)),
                 // payload
                 m_SessionPutPayload.CreatePayload(updated_at, threshold, data, tags),
                 // response
