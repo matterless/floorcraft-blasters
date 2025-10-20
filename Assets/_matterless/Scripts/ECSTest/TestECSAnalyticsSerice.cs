@@ -78,5 +78,25 @@
         {
             throw new System.NotImplementedException();
         }
+
+        public void SetWalletAddress(string walletAddress)
+        {
+            // Test implementation - no-op
+        }
+
+        public void ClearWalletAddress()
+        {
+            // Test implementation - no-op
+        }
+
+        public void ExitDomain(string domainId, float durationSeconds, string sessionId)
+        {
+            // Test implementation - no-op
+        }
+
+        public void DomainActivity(string domainId, string sessionId, int participantCount)
+        {
+            // Test implementation - no-op
+        }
     }
 }

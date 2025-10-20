@@ -25,12 +25,12 @@ MonoBehaviour:
     m_HeartbeatFrequencyThresholdPercentage: 0.2
     m_OnlyMasterClient: 0
   m_AukiSettings:
-    m_AppKey: Get your Auki App Key from https://posemesh.auki.com
-    m_AppSecret: Get your Auki App Secret from https://posemesh.auki.com
+    m_AppKey: Get your Auki App Key from https://developer.aukilabs.com
+    m_AppSecret: Get your Auki App Secret from https://developer.aukilabs.com
     m_LogLevel: 3
     m_AutoJoinOnStart: 0
     m_UseGrund: 1
-    m_AppDomainId: Auki posemesh domain id
+    m_AppDomainId: Get your Auki Domain ID from https://developer.aukilabs.com
     m_MannaSettings:
       m_ScanningType: 10
       m_HighScanningFrequency: 0.1
@@ -44,6 +44,9 @@ MonoBehaviour:
     m_EnvironmentDepthMode: 0
     m_UseThisSessionIdInEditor: 0
     m_SessionId: 
+  m_AnalyticsSettings:
+    m_AmplitudeApiKey: Get your Amplitude API Key from https://amplitude.com
+    m_EnableLogging: 1
   m_WalletSettings:
     m_ProjectId: Get your Reown Project ID from https://cloud.reown.com
     m_ProjectName: 'Floorcraft: Blasters'

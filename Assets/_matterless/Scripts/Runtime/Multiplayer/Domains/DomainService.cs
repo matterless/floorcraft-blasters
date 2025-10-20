@@ -91,6 +91,7 @@ namespace Matterless.Floorcraft
         //private readonly IConnectionService m_ConnectionService;
         private readonly IRestService m_RestService;
         private readonly IAnalyticsService m_AnalyticsService;
+        private readonly WalletService m_WalletService;
         private readonly ILocalisationService m_LocalisationService;
         private readonly IInputDialogueService m_InputDialogueService;
         private readonly HeartbeatService.Settings m_HeartbeatSettings;
@@ -99,6 +100,8 @@ namespace Matterless.Floorcraft
 
         private string m_DomainId;
         private SessionResponse m_CurrentSessionData;
+        private float m_DomainEnterTime;
+        private string m_CurrentSessionId;
         //this is a workaround be cause we need to cancel the poseselector to restart scanning
         private readonly LighthousePose m_NullLighthouse = new();
         private bool m_ExpectingBadLighthouse;
@@ -127,6 +130,7 @@ namespace Matterless.Floorcraft
             //IConnectionService connectionService,
             IRestService restService,
             IAnalyticsService analyticsService,
+            WalletService walletService,
             ILocalisationService localisationService,
             IInputDialogueService inputDialogueService,
             PropertiesComponentService propertiesComponentService,
@@ -142,6 +146,7 @@ namespace Matterless.Floorcraft
             //m_ConnectionService = connectionService;
             m_RestService = restService;
             m_AnalyticsService = analyticsService;
+            m_WalletService = walletService;
             m_LocalisationService = localisationService;
             m_InputDialogueService = inputDialogueService;
             m_HeartbeatSettings = heartbeatSettings;
@@ -159,6 +164,14 @@ namespace Matterless.Floorcraft
 
         private void ResetValuesOnSessionLeft()
         {
+            // Track domain exit with duration before resetting
+            if (!string.IsNullOrEmpty(m_DomainId) && m_DomainEnterTime > 0)
+            {
+                float durationSeconds = Time.time - m_DomainEnterTime;
+                m_AnalyticsService.ExitDomain(m_DomainId, durationSeconds, m_CurrentSessionId ?? string.Empty);
+                m_DomainEnterTime = 0;
+            }
+            
             sessionIdDomain = false;
             m_DomainAssetService.ResetValues();
 
@@ -407,6 +420,10 @@ namespace Matterless.Floorcraft
         {
             Debug.Log($"DomainService.OnDomainSessionJoinedCompleted {sessionId}, isMaster:{isMasterClient}");
 
+            // Track domain entry time for duration calculation
+            m_DomainEnterTime = Time.time;
+            m_CurrentSessionId = sessionId;
+            
             m_AnalyticsService.EnterDomain(m_DomainId, isMasterClient ? DomainEnterType.Host : DomainEnterType.Join);
 
 

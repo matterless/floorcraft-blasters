@@ -56,7 +56,7 @@ namespace Matterless.Floorcraft
             container.Bind<IPoolingService, PoolingService>();
             container.Bind<BacktraceService>();
             container.Bind<IRemoteConfigService, RemoteConfigService>(m_EnvironmentSettings.remoteConfigSettings);
-            container.Bind<IAnalyticsService, AnalyticsService>();
+            container.Bind<IAnalyticsService, AnalyticsService>(m_AppConfigs.analyticsSettings);
 
             container.Bind<IPlayerPrefsService,PlayerPrefsService>();
             container.Bind<ICoroutineRunner, CoroutineRunner>(this);

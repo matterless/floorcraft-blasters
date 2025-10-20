@@ -8,11 +8,13 @@ namespace Matterless.Floorcraft
     {
         private readonly WalletService m_WalletService;
         private readonly AudioUiService m_AudioUiService;
+        private readonly IAnalyticsService m_AnalyticsService;
         private readonly WalletUiView m_View;
 
-        public WalletUiService(WalletService walletService,AudioUiService audioUiService){
+        public WalletUiService(WalletService walletService, AudioUiService audioUiService, IAnalyticsService analyticsService){
             m_WalletService = walletService;
             m_AudioUiService = audioUiService;
+            m_AnalyticsService = analyticsService;
             
             // Create the view
             m_View = WalletUiView.Create("UIPrefabs/UIP_WalletView").Init();
@@ -57,6 +59,9 @@ namespace Matterless.Floorcraft
             string address = m_WalletService.GetConnectedAddress();
             m_View.SetWalletAddressText(address);
             
+            // Track wallet connection for user analytics
+            m_AnalyticsService.SetWalletAddress(address);
+            
             m_View.ShowWalletInfo();
             m_View.SetConnectButtonInteractability(true);
             m_View.SetDisconnectButtonInteractability(true);
@@ -64,6 +69,9 @@ namespace Matterless.Floorcraft
 
         private void OnWalletDisconnected()
         {
+            // Track wallet disconnection for user analytics
+            m_AnalyticsService.ClearWalletAddress();
+            
             m_View.SetConnectButtonVisibility(true);
             m_View.SetDisconnectButtonVisibility(false);
             m_View.SetWalletAddressText("");

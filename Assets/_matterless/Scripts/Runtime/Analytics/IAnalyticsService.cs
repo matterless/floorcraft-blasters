@@ -18,7 +18,15 @@ namespace Matterless.Floorcraft
         void FinishRecording(float duration, string sessionId = "");
         void TakePhoto(string sessionId = "");
         void SeenDomain(string domainId);
-        void EnterDomain(string domainId,DomainEnterType domainEnterType);
+        void EnterDomain(string domainId, DomainEnterType domainEnterType);
         void PowerUpUse(EquipmentState state, int quantity);
+        
+        // User/Wallet tracking
+        void SetWalletAddress(string walletAddress);
+        void ClearWalletAddress();
+        
+        // Enhanced domain tracking
+        void ExitDomain(string domainId, float durationSeconds, string sessionId);
+        void DomainActivity(string domainId, string sessionId, int participantCount);
     }
 }

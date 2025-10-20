@@ -60,8 +60,9 @@ Before running the project, you **must** configure the following:
 
 2. **Analytics** (Required):
    - Get an Amplitude App Key from [Amplitude](https://amplitude.com)
-   - Open `Assets/_matterless/Scripts/Runtime/Analytics/AnalyticsService.cs`
-   - Replace `YOUR_AMPLITUDE_ID` with your actual key
+   - Open `Assets/_matterless/Data/Blasters Configs`
+   - In the Inspector, find "Analytics Settings"  
+   - Replace the placeholder with your actual Amplitude API Key
 
 3. **Optional Integrations:**
    - Reown WalletConnect (see Wallet Integration section below)

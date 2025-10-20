@@ -35,7 +35,11 @@ namespace Matterless.Floorcraft
             AR_PHOTO_CAPTURE,
             AR_DOMAIN_SEEN,
             AR_DOMAIN_ENTER,
-            AR_POWERUP_USE
+            AR_DOMAIN_EXIT,
+            AR_DOMAIN_ACTIVITY,
+            AR_POWERUP_USE,
+            AR_WALLET_CONNECTED,
+            AR_WALLET_DISCONNECTED
         }
 
 
@@ -48,8 +52,14 @@ namespace Matterless.Floorcraft
         private readonly Dictionary<string, object> m_FinishRecordDictionary;
         private readonly Dictionary<string, object> m_DomainDictionary;
         private readonly Dictionary<string, object> m_DomainJoinTypeDictionary;
+        private readonly Dictionary<string, object> m_DomainExitDictionary;
+        private readonly Dictionary<string, object> m_DomainActivityDictionary;
+        private readonly Dictionary<string, object> m_WalletDictionary;
         private readonly Dictionary<string, object> m_PowerUpDictionary;
         private readonly Dictionary<string, object> m_ItemSpawnDictionary;
+        
+        // Cache current wallet address for analytics
+        private string m_CurrentWalletAddress = string.Empty;
 
         private const string SESSION_ID_PARAM = "Session Id";
         private const string DOMAIN_ID_PARAM = "Domain Id";
@@ -64,14 +74,16 @@ namespace Matterless.Floorcraft
         private const string POWERUP_ITEM_PARAM = "item Id";
         private const string POWERUP_TYPE_PARAM = "item type";
         private const string POWERUP_QUANTITY_PARAM = "Quantity";
+        private const string WALLET_ADDRESS_PARAM = "Wallet Address";
+        private const string DOMAIN_DURATION_PARAM = "Domain Duration";
+        private const string TIMESTAMP_PARAM = "Timestamp";
 
-        public AnalyticsService(IUnityEventDispatcher unityEventDispatcher)
+        public AnalyticsService(IUnityEventDispatcher unityEventDispatcher, AnalyticsSettings settings)
         {
             m_Amplitude = Amplitude.Instance;
-            m_Amplitude.logging = true;
-            m_Amplitude.init("YOUR_AMPLITUDE_ID");
+            m_Amplitude.logging = settings.enableLogging;
+            m_Amplitude.init(settings.amplitudeApiKey);
             SendEvent(AnalyticsEvent.APP_LAUNCH);
-            Debug.Log("Test");
             m_DomainDictionary = new Dictionary<string, object>()
             {
                 {DOMAIN_ID_PARAM, string.Empty}
@@ -127,6 +139,27 @@ namespace Matterless.Floorcraft
             {
                 {POWERUP_ITEM_PARAM, 0},
                 {POWERUP_QUANTITY_PARAM,-1}
+            };
+            
+            m_DomainExitDictionary = new Dictionary<string, object>()
+            {
+                {DOMAIN_ID_PARAM, string.Empty},
+                {SESSION_ID_PARAM, string.Empty},
+                {DOMAIN_DURATION_PARAM, 0f},
+                {WALLET_ADDRESS_PARAM, string.Empty}
+            };
+            
+            m_DomainActivityDictionary = new Dictionary<string, object>()
+            {
+                {DOMAIN_ID_PARAM, string.Empty},
+                {SESSION_ID_PARAM, string.Empty},
+                {SESSION_PARTICIPANT_PARAM, 0},
+                {WALLET_ADDRESS_PARAM, string.Empty}
+            };
+            
+            m_WalletDictionary = new Dictionary<string, object>()
+            {
+                {WALLET_ADDRESS_PARAM, string.Empty}
             };
 
             unityEventDispatcher.unityOnApplicationPause += OnApplicationPause;
@@ -233,6 +266,63 @@ namespace Matterless.Floorcraft
             m_PowerUpDictionary[POWERUP_QUANTITY_PARAM] = quantity;
             SendEvent(AnalyticsEvent.AR_POWERUP_USE, m_PowerUpDictionary);
         }
+        
+        public void SetWalletAddress(string walletAddress)
+        {
+            if (string.IsNullOrEmpty(walletAddress))
+            {
+                Debug.LogWarning("[AnalyticsService] SetWalletAddress called with empty address");
+                return;
+            }
+            
+            // Cache wallet address for use in events
+            m_CurrentWalletAddress = walletAddress;
+            
+            // Set wallet address as Amplitude user ID for cross-session tracking
+            m_Amplitude.setUserId(walletAddress);
+            
+            // Also set as user property for analytics queries
+            m_Amplitude.setUserProperty("wallet_address", walletAddress);
+            m_Amplitude.setUserProperty("wallet_connected", true);
+            
+            // Track wallet connection event
+            m_WalletDictionary[WALLET_ADDRESS_PARAM] = walletAddress;
+            SendEvent(AnalyticsEvent.AR_WALLET_CONNECTED, m_WalletDictionary);
+        }
+        
+        public void ClearWalletAddress()
+        {
+            // Clear cached wallet address
+            m_CurrentWalletAddress = string.Empty;
+            
+            // Revert to device ID tracking
+            m_Amplitude.setUserId(null);
+            m_Amplitude.setUserProperty("wallet_connected", false);
+            
+            // Track wallet disconnection event
+            SendEvent(AnalyticsEvent.AR_WALLET_DISCONNECTED);
+        }
+        
+        public void ExitDomain(string domainId, float durationSeconds, string sessionId)
+        {
+            m_DomainExitDictionary[DOMAIN_ID_PARAM] = domainId;
+            m_DomainExitDictionary[SESSION_ID_PARAM] = sessionId;
+            m_DomainExitDictionary[DOMAIN_DURATION_PARAM] = durationSeconds;
+            m_DomainExitDictionary[WALLET_ADDRESS_PARAM] = m_CurrentWalletAddress;
+            
+            SendEvent(AnalyticsEvent.AR_DOMAIN_EXIT, m_DomainExitDictionary);
+        }
+        
+        public void DomainActivity(string domainId, string sessionId, int participantCount)
+        {
+            m_DomainActivityDictionary[DOMAIN_ID_PARAM] = domainId;
+            m_DomainActivityDictionary[SESSION_ID_PARAM] = sessionId;
+            m_DomainActivityDictionary[SESSION_PARTICIPANT_PARAM] = participantCount;
+            m_DomainActivityDictionary[WALLET_ADDRESS_PARAM] = m_CurrentWalletAddress;
+            
+            SendEvent(AnalyticsEvent.AR_DOMAIN_ACTIVITY, m_DomainActivityDictionary);
+        }
+        
         private void SendEvent(AnalyticsEvent eventId, Dictionary<string, object> parameter = null)
         {
             // don't send analytics from unity editor
