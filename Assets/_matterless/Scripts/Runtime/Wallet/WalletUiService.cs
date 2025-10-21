@@ -76,6 +76,7 @@ namespace Matterless.Floorcraft
             m_View.HideWalletInfo();
             m_View.SetConnectButtonInteractability(true);
             m_View.SetOpenWalletButtonInteractability(true);
+            
             ShowBalance();
         }
 
@@ -95,8 +96,13 @@ namespace Matterless.Floorcraft
         }
 
         private async void ShowBalance(){
-            string balance = await m_WalletService.GetWalletNativeBalanceAsync();
-            m_View.SetEthBalanceText(balance);
+            // Fetch ETH balance
+            string ethBalance = await m_WalletService.GetWalletNativeBalanceAsync();
+            m_View.SetEthBalanceText(ethBalance);
+            
+            // Fetch AUKI balance
+            string aukiBalance = await m_WalletService.GetAukiBalanceAsync();
+            m_View.SetAukiBalanceText(aukiBalance);
         }
 
         public void Show()
@@ -120,6 +126,10 @@ namespace Matterless.Floorcraft
         {
             // Disconnect wallet and hide wallet info container
             m_AudioUiService.PlaySelectSound();
+            
+            // Disable open wallet button during disconnection process
+            m_View.SetOpenWalletButtonInteractability(false);
+            
             m_WalletService.Disconnect();
             m_View.HideWalletInfo();
         }
