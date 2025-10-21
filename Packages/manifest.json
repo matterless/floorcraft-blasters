@@ -9,7 +9,7 @@
     "com.matterless.module.audio": "git@github.com:matterless/audio-module.git",
     "com.matterless.module.inject": "git@github.com:matterless/inject-module.git",
     "com.matterless.module.localisation": "git@github.com:matterless/localisation-module.git",
-    "com.reown.appkit.unity": "1.5.0",
+    "com.reown.appkit.unity": "1.5.1",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.unity.purchasing": "4.11.0",
@@ -19,8 +19,8 @@
     "com.unity.textmeshpro": "3.0.7",
     "com.unity.timeline": "1.7.7",
     "com.unity.ugui": "1.0.0",
-    "com.unity.xr.arfoundation": "4.2.9",
     "com.unity.xr.arcore": "4.2.9",
+    "com.unity.xr.arfoundation": "4.2.9",
     "com.unity.xr.arkit": "4.2.9",
     "com.unity.xr.arsubsystems": "4.2.9",
     "com.unity.xr.core-utils": "2.0.0",
@@ -55,7 +55,9 @@
     {
       "name": "Aukilabs",
       "url": "https://npm.aukiverse.com",
-      "scopes": ["com.aukilabs"]
+      "scopes": [
+        "com.aukilabs"
+      ]
     },
     {
       "name": "package.openupm.com",

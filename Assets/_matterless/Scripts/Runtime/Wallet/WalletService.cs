@@ -5,6 +5,8 @@ using Reown.AppKit.Unity;
 using UnityEngine;
 using Matterless.Inject;
 using Matterless.UTools;
+using Nethereum.Web3;
+using System.Numerics;
 
 namespace Matterless.Floorcraft
 {
@@ -15,13 +17,15 @@ namespace Matterless.Floorcraft
         public event Action<bool> onModalStateChanged;
 
         private readonly WalletSettings m_WalletSettings;
+        private readonly ChainSettings m_ChainSettings;
         private GameObject m_AppKitPrefab;
         private bool m_IsInitialized = false;
 
 
-        public WalletService(WalletSettings walletSettings)
+        public WalletService(WalletSettings walletSettings, ChainSettings chainSettings)
         {
             m_WalletSettings = walletSettings;
+            m_ChainSettings = chainSettings;
 
             InstantiateAppKitPrefab();
             InitializeWallet();
@@ -43,8 +47,8 @@ namespace Matterless.Floorcraft
 
         private async Task InitializeWallet()
         {
-            AppKitConfig config = new AppKitConfig(
-                projectId: m_WalletSettings.projectId, 
+            var config = new AppKitConfig(
+                projectId: m_WalletSettings.projectId,
                 new Metadata(
                     name: m_WalletSettings.projectName,
                     description: m_WalletSettings.projectDescription,
@@ -53,25 +57,35 @@ namespace Matterless.Floorcraft
                     new RedirectData
                     {
                         Native = "unity-floorcraft-app://"
-                    }   
+                    }
                 )
-            );
-            
+            )
+            {
+                supportedChains = new[]
+                {
+                    ChainConstants.Chains.Base       
+                }
+            };
+
             await AppKit.InitializeAsync(config);
             await OnAppKitInitialized();
-
         }
 
-        private async Task OnAppKitInitialized(){
-            if(AppKit.IsInitialized){
+
+        private async Task OnAppKitInitialized()
+        {
+            if (AppKit.IsInitialized)
+            {
                 AppKit.AccountConnected += OnAccountConnected;
                 AppKit.AccountDisconnected += OnAccountDisconnected;
                 AppKit.ModalController.OpenStateChanged += OnModalStateChanged;
             }
         }
 
-        public void Connect(){
-            if(!AppKit.IsInitialized){
+        public void Connect()
+        {
+            if (!AppKit.IsInitialized)
+            {
                 Debug.LogError("AppKit not initialized");
                 return;
             }
@@ -81,13 +95,15 @@ namespace Matterless.Floorcraft
 
         private void OnAccountConnected(object sender, Connector.AccountConnectedEventArgs e)
         {
+            string address = e.Account.Address;
+
             onWalletConnected?.Invoke();
         }
-        
+
         private void InstantiateAppKitPrefab()
         {
             GameObject appKitPrefab = Resources.Load<GameObject>("Wallet/Reown AppKit");
-            
+
             if (appKitPrefab == null)
             {
                 Debug.LogError("Reown AppKit prefab not found at Resources/Wallet/Reown AppKit.prefab");
@@ -105,6 +121,21 @@ namespace Matterless.Floorcraft
         private void OnModalStateChanged(object sender, ModalOpenStateChangedEventArgs e)
         {
             onModalStateChanged?.Invoke(e.IsOpen);
+        }
+
+        public async Task<string> GetWalletNativeBalanceAsync()
+        {
+            if (!AppKit.IsAccountConnected)
+            {
+                Debug.LogWarning("Wallet not connected!");
+                return "0";
+            }
+
+            string address = AppKit.Account.Address;
+            BigInteger balanceWei = await AppKit.Evm.GetBalanceAsync(address);
+            decimal balanceEth = Web3.Convert.FromWei(balanceWei);
+
+            return balanceEth.ToString("F4");
         }
     }
 }

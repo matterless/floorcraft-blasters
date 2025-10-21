@@ -34,3 +34,9 @@ MonoBehaviour:
   - m_Type: 7
     m_Text: DOMAIN_QR_CODE_FAILED
     m_Icon: {fileID: 21300000, guid: faeec5ca0cd794358b402f642cc2347e, type: 3}
+  - m_Type: 8
+    m_Text: WALLET_CONNECTED
+    m_Icon: {fileID: 21300000, guid: faeec5ca0cd794358b402f642cc2347e, type: 3}
+  - m_Type: 9
+    m_Text: WALLET_DISCONNECTED
+    m_Icon: {fileID: 21300000, guid: faeec5ca0cd794358b402f642cc2347e, type: 3}

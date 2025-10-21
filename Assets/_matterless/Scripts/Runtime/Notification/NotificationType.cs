@@ -32,6 +32,8 @@ namespace  Matterless.Floorcraft
         /// </summary>
         OnParticipantLeft,
         StaticLighthouseAssign,
-        StaticLighthouseFail
+        StaticLighthouseFail,
+        WalletConnected,
+        WalletDisconnected
     }
 }

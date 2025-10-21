@@ -38,7 +38,8 @@ namespace Matterless.Floorcraft
             container.BindInstance(appConfig.mayhemModeSettings);
             container.BindInstance(appConfig.worldScaleSettings);
             container.BindInstance(appConfig.walletSettings);
-            
+            container.BindInstance(appConfig.chainSettings);
+
             container.Bind<WorldScaleService>();
             container.Bind<PropertiesECSService.Settings>();
             container.Bind<IConnectionService, ConnectionService>();
