@@ -1,11 +1,8 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Reown.AppKit.Unity;
 using UnityEngine;
-using Matterless.Inject;
-using Matterless.UTools;
-using Nethereum.Web3;
 using System.Numerics;
 using System.Net.Http;
 using System.Text;
@@ -43,12 +40,19 @@ namespace Matterless.Floorcraft
         public event Action onWalletConnected;
         public event Action onWalletDisconnected;
         public event Action<bool> onModalStateChanged;
+        public event Action onNFTsLoaded;
 
         private readonly WalletSettings m_WalletSettings;
         private readonly ChainSettings m_ChainSettings;
         private GameObject m_AppKitPrefab;
         private bool m_IsInitialized = false;
-
+        
+        // NFT ownership cache
+        private readonly Dictionary<string, bool> m_NFTOwnershipCache = new Dictionary<string, bool>();
+        private bool m_NFTCacheInitialized = false;
+        
+        // Public accessors
+        public ChainSettings chainSettings => m_ChainSettings;
 
         public WalletService(WalletSettings walletSettings, ChainSettings chainSettings)
         {
@@ -121,12 +125,16 @@ namespace Matterless.Floorcraft
             AppKit.OpenModal(ViewType.Connect);
         }
 
-        private void OnAccountConnected(object sender, Connector.AccountConnectedEventArgs e)
+        private async void OnAccountConnected(object sender, Connector.AccountConnectedEventArgs e)
         {
             string address = e.Account.Address;
-            Debug.Log($"Tomicz: OnAccountConnected called with address: {address}");
 
             onWalletConnected?.Invoke();
+            
+            // Clear cache and reinitialize for new wallet
+            m_NFTOwnershipCache.Clear();
+            m_NFTCacheInitialized = false;
+            await InitializeNFTCache();
         }
 
         private void InstantiateAppKitPrefab()
@@ -144,6 +152,10 @@ namespace Matterless.Floorcraft
 
         private void OnAccountDisconnected(object sender, Connector.AccountDisconnectedEventArgs e)
         {
+            // Clear NFT cache when wallet disconnects
+            m_NFTOwnershipCache.Clear();
+            m_NFTCacheInitialized = false;
+            
             onWalletDisconnected?.Invoke();
         }
 
@@ -182,7 +194,7 @@ namespace Matterless.Floorcraft
                 
                 return "0.0000";
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"Error fetching AUKI balance: {ex.Message}");
                 return "Error";
@@ -335,6 +347,146 @@ namespace Matterless.Floorcraft
             {
                 Debug.LogError($"Direct RPC call failed: {ex.Message}");
                 return null;
+            }
+        }
+
+        private async Task InitializeNFTCache()
+        {
+            if (m_NFTCacheInitialized || !AppKit.IsAccountConnected)
+                return;
+                
+            try
+            {
+                // Get vehicle token IDs from the vehicle selector settings
+                var vehicleTokenIds = GetVehicleTokenIds();
+                
+                var nftService = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                
+                foreach (string tokenId in vehicleTokenIds)
+                {
+                    try
+                    {
+                        bool ownsToken = await nftService.OwnsToken(AppKit.Account.Address, tokenId);
+                        m_NFTOwnershipCache[tokenId] = ownsToken;
+                    }
+                    catch (Exception ex)
+                    {
+                        m_NFTOwnershipCache[tokenId] = false;
+                    }
+                }
+                
+                m_NFTCacheInitialized = true;
+                
+                // Notify that NFT cache is ready
+                onNFTsLoaded?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to initialize NFT cache: {ex.Message}");
+            }
+        }
+        
+        private List<string> GetVehicleTokenIds()
+        {
+            var tokenIds = new List<string>();
+            
+            try
+            {
+                // Try to get vehicle settings from the app configs
+                var appConfigs = Resources.Load<AppConfigs>("AppConfigs");
+                if (appConfigs != null && appConfigs.vehicleSelectorSettings != null)
+                {
+                    foreach (var vehicle in appConfigs.vehicleSelectorSettings.vehicles)
+                    {
+                        if (vehicle.requiresNFT)
+                        {
+                            // Use the NFT token ID field, not the vehicle ID
+                            string tokenId = vehicle.nftTokenId.ToString();
+                            if (!tokenIds.Contains(tokenId))
+                            {
+                                tokenIds.Add(tokenId);
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback: if no vehicles found, use default range
+                if (tokenIds.Count == 0)
+                {
+                    for (int i = 1; i <= 10; i++)
+                    {
+                        tokenIds.Add(i.ToString());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to default range
+                for (int i = 1; i <= 10; i++)
+                {
+                    tokenIds.Add(i.ToString());
+                }
+            }
+            
+            return tokenIds;
+        }
+        
+        public bool IsNFTOwned(string tokenId)
+        {
+            if (!m_NFTCacheInitialized)
+            {
+                return false;
+            }
+            
+            return m_NFTOwnershipCache.TryGetValue(tokenId, out bool owned) && owned;
+        }
+        
+        /// <summary>
+        /// Get list of token IDs that are owned by the connected wallet
+        /// </summary>
+        public List<string> GetOwnedTokenIds()
+        {
+            var ownedTokens = new List<string>();
+            foreach (var kvp in m_NFTOwnershipCache)
+            {
+                if (kvp.Value)
+                {
+                    ownedTokens.Add(kvp.Key);
+                }
+            }
+            return ownedTokens;
+        }
+        
+        /// <summary>
+        /// Get count of NFTs owned by the connected wallet
+        /// </summary>
+        public int GetOwnedNFTCount()
+        {
+            return GetOwnedTokenIds().Count;
+        }
+        
+        public async Task<bool> CheckNFTOwnership(string tokenId)
+        {
+            if (!AppKit.IsAccountConnected)
+            {
+                Debug.LogWarning("Wallet not connected!");
+                return false;
+            }
+
+            try
+            {
+                // Create NFTService instance for ERC-1155
+                var nftService = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                
+                
+                // Check if user owns the token
+                bool ownsToken = await nftService.OwnsToken(AppKit.Account.Address, tokenId);
+                
+                return ownsToken;
+            }
+            catch (System.Exception ex)
+            {
+                return false;
             }
         }
     }

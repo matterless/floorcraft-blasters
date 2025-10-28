@@ -16,6 +16,7 @@ MonoBehaviour:
   m_ResourcesPath: NewEntities/RegularSpeeder
   m_AssetType: 0
   m_Size: 0.0175
+  m_Premium: 0
   m_SelectorPrefab: {fileID: 918996175805046401, guid: 46bb3669541ecf6479fc989f97da9b43, type: 3}
   m_Style: 1
   m_MaxSpeed: 500

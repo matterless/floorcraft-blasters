@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -23,6 +24,12 @@ namespace Matterless.Floorcraft
         [SerializeField] private TMP_Text m_WalletAddressText;
         [SerializeField] private TMP_Text m_EthBalanceText;
         [SerializeField] private TMP_Text m_AukiBalanceText;
+        [SerializeField] private NFTContainerView m_NFTContainerView; // Prefab reference
+        [SerializeField] private Transform m_NFTContainerParent; // Parent transform for instantiated containers
+        
+        private List<NFTContainerView> m_InstantiatedContainers = new List<NFTContainerView>();
+        
+        public List<NFTContainerView> m_InstantiatedContainersPublic => m_InstantiatedContainers;
 
         public override WalletUiView Init()
         {
@@ -113,6 +120,89 @@ namespace Matterless.Floorcraft
         public void SetAukiBalanceText(string text)
         {
             m_AukiBalanceText.text = text;
+        }
+
+        /// <summary>
+        /// Initialize NFT containers dynamically based on count of owned NFTs
+        /// </summary>
+        public void InitializeNFTContainers(int nftCount)
+        {
+            if (m_NFTContainerView == null)
+            {
+                Debug.LogError("NFTContainerView prefab is not assigned!");
+                return;
+            }
+            
+            if (m_NFTContainerParent == null)
+            {
+                Debug.LogError("NFTContainerParent transform is not assigned!");
+                return;
+            }
+            
+            ClearNFTContainers();
+            
+            for (int i = 0; i < nftCount; i++)
+            {
+                GameObject containerObj = Instantiate(m_NFTContainerView.gameObject, m_NFTContainerParent);
+                containerObj.SetActive(true);
+                
+                var containerView = containerObj.GetComponent<NFTContainerView>();
+                if (containerView != null)
+                {
+                    m_InstantiatedContainers.Add(containerView);
+                }
+                else
+                {
+                    Debug.LogWarning("NFTContainerView component not found on prefab!");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Clear all dynamically created NFT containers
+        /// </summary>
+        public void ClearNFTContainers()
+        {
+            foreach (var container in m_InstantiatedContainers)
+            {
+                if (container != null)
+                {
+                    Destroy(container.gameObject);
+                }
+            }
+            
+            m_InstantiatedContainers.Clear();
+            
+            // Also destroy any leftover children
+            if (m_NFTContainerParent != null)
+            {
+                foreach (Transform child in m_NFTContainerParent)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+        }
+        
+        public void SetNFTImage(int index, Sprite sprite){
+            if (sprite == null)
+            {
+                Debug.LogError("Cannot set null sprite");
+                return;
+            }
+            
+            if (index < 0 || index >= m_InstantiatedContainers.Count)
+            {
+                Debug.LogError($"Invalid index {index}, container count: {m_InstantiatedContainers.Count}");
+                return;
+            }
+            
+            if (m_InstantiatedContainers[index] == null)
+            {
+                Debug.LogError($"Container at index {index} is null");
+                return;
+            }
+            
+            m_InstantiatedContainers[index].SetImage(sprite);
         }
     }
 }

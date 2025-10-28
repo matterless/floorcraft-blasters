@@ -202,6 +202,18 @@ namespace Matterless.Floorcraft
 
         public void RemoveSpeeder(uint speederEntityId)
         {
+            // Check if entity is valid
+            if (speederEntityId == m_EmptySpeederEntity)
+            {
+                return;
+            }
+            
+            // Check if entity exists
+            if (!m_SpeederViews.ContainsKey(speederEntityId))
+            {
+                return;
+            }
+            
             // remove components
             m_SpeederStateComponentService.DeleteComponent(speederEntityId);
             m_PropertiesComponentService.DeleteComponent(speederEntityId);
@@ -211,9 +223,7 @@ namespace Matterless.Floorcraft
             // deleting the entity didn't invoke the delete property events
             // TODO:: ask AUKI about it
 
-            Debug.Log("speeder attempt delete " + speederEntityId);
-            m_AukiWrapper.DeleteEntity(speederEntityId,
-                () => Debug.Log($"Obstacle entity deleted {speederEntityId}"));
+            m_AukiWrapper.DeleteEntity(speederEntityId, null);
             OnSpeederDelete(speederEntityId);
         }
 
@@ -808,6 +818,8 @@ namespace Matterless.Floorcraft
             {
                 //Get inputs
                 var simulation = m_SimulationList[i];
+                
+                if (simulation == null) continue;
 
                 if (m_SpeederStateComponentService.TryGetComponentModel(simulation.entityId,
                         out var speederStateComponent))
@@ -864,7 +876,10 @@ namespace Matterless.Floorcraft
                 var brakeInput = (isPlayer) ? m_SpeederHUDService.brakeInput : false;
                 
                 // NOTE: (Marko) Under glow Highlight control
-                m_SpeederViews[entityId].SetUnderGlowHighlight(isPlayer);
+                if (m_SpeederViews.ContainsKey(entityId))
+                {
+                    m_SpeederViews[entityId].SetUnderGlowHighlight(isPlayer);
+                }
                 
 
                 var input = (isPlayer && equipmentState == EquipmentState.Dash && !m_CooldownService.inCooldown)
@@ -899,7 +914,10 @@ namespace Matterless.Floorcraft
                 var gameState = SpeederMapper.ToGameModel(simulation, equipmentState);
 
                 // Apply outputs
-                m_SpeederViews[entityId].UpdateView(viewState);
+                if (m_SpeederViews.ContainsKey(entityId))
+                {
+                    m_SpeederViews[entityId].UpdateView(viewState);
+                }
 
                 if (isPlayer)
                 {

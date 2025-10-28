@@ -216,10 +216,11 @@ namespace Matterless.Floorcraft
         {
             if (state == ConnectionState.Connected)
             {
-                if(m_CurrentState == State.Gameplay){
+                if(m_CurrentState == State.Gameplay && m_DomainService.IsUserInitiatedConnection){
                     m_NotificationService.ShowMessage(NotificationType.OnJoinedRoom);
-                    m_SpeederService.RemoveSpeeder();
-                    m_StateMachine.SwitchState((int)State.Spawning);
+                    // m_SpeederService.RemoveSpeeder();
+                    m_StateMachine.SwitchState((int)State.VehicleSelector);
+                    m_DomainService.SetUserInitiatedConnection(false);
                 }
 
                 if(m_CurrentState == State.Intro && m_DomainService.IsUserInitiatedConnection){

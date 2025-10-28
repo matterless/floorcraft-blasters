@@ -60,6 +60,7 @@ namespace Matterless.Floorcraft
         public void Hide()
         {
             m_View.Hide();
+            m_RendererService.DisableDimm();
         }
 
         public void StoreButtonVisibility(bool isVisible)

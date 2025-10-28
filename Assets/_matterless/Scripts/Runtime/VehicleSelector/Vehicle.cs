@@ -8,6 +8,8 @@ namespace Matterless.Floorcraft
     public class Vehicle : Asset
     {
         [SerializeField] private bool m_Premium = false;
+        [SerializeField] private bool m_RequiresNFT = false;    
+        [SerializeField] private int m_NFTTokenId = 0; 
         [SerializeField] private string m_NameTag;
         [SerializeField, FormerlySerializedAs("m_Prefab")] private GameObject m_SelectorPrefab;
         [SerializeField] private int m_Style;
@@ -21,6 +23,8 @@ namespace Matterless.Floorcraft
         [SerializeField] private ushort m_BoostPower = 10;
         [SerializeField] private EngineVFXSettings m_EngineVFXSettings;
 
+        public bool requiresNFT => m_RequiresNFT;
+        public int nftTokenId => m_NFTTokenId;
         public bool premium => m_Premium;
         public string nameTag => m_NameTag;
         

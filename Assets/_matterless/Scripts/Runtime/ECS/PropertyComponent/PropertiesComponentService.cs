@@ -42,9 +42,15 @@ namespace Matterless.Floorcraft
         protected override void OnComponentDeleted(uint entityId, bool isMine)
         {
             // properties component should handle the game object lifecycle
-            Object.Destroy(m_GameObjects[entityId].gameObject);
-            m_GameObjects.Remove(entityId);
-            m_Viewes.Remove(entityId);
+            if (m_GameObjects.ContainsKey(entityId))
+            {
+                Object.Destroy(m_GameObjects[entityId].gameObject);
+                m_GameObjects.Remove(entityId);
+            }
+            if (m_Viewes.ContainsKey(entityId))
+            {
+                m_Viewes.Remove(entityId);
+            }
         }
     }
 }

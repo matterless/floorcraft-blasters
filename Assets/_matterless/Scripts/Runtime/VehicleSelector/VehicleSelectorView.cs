@@ -42,6 +42,7 @@ namespace Matterless.Floorcraft
         
         [Header("Premium")] 
         [SerializeField] private Button m_StoreButton;
+        [SerializeField] private Button m_NFTButton;
         [SerializeField] private GameObject m_LockedIndicator;
         #endregion
 
@@ -62,7 +63,9 @@ namespace Matterless.Floorcraft
         public void UpdateView(string name, bool isLocked)
         {
             m_NameText.text = name;
-            m_StoreButton.gameObject.SetActive(isLocked);
+            m_StoreButton.gameObject.SetActive(false);
+            m_NFTButton.gameObject.SetActive(isLocked);
+            m_NFTButton.interactable = false; 
             m_LockedIndicator.SetActive(isLocked);
             m_SelectorSelectButton.gameObject.SetActive(!isLocked);
         }

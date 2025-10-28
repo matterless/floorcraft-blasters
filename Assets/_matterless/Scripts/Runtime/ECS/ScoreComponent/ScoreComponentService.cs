@@ -24,7 +24,9 @@ namespace Matterless.Floorcraft
 
         protected override void OnComponentAdded(ScoreComponentModel model)
         {
+            Debug.Log($"tomicz: ScoreComponentService.OnComponentAdded(entity:{model.entityId}) - Dictionary size before add: {m_Models.Count}, Contains key: {m_Models.ContainsKey(model.entityId)}");
             m_Models.Add(model.entityId,model);
+            Debug.Log($"tomicz: ScoreComponentService.OnComponentAdded completed - Dictionary size after add: {m_Models.Count}");
         }
 
         protected override void UpdateComponentMethod(ScoreComponentModel model, ScoreModel data)

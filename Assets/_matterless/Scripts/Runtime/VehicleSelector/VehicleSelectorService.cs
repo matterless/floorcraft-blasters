@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
 using Matterless.Inject;
 using Matterless.Localisation;
 using UnityEngine;
@@ -24,6 +23,7 @@ namespace Matterless.Floorcraft
         private readonly IRendererService m_RendererService;
         private readonly IStoreService m_StoreService;
         private readonly Settings m_Settings;
+        private readonly WalletService m_WalletService;
         private readonly List<Transform> m_Vehicles;
         private readonly float m_Give = 0.25f;
 
@@ -47,7 +47,8 @@ namespace Matterless.Floorcraft
             ILocalisationService localisationService,
             IRendererService rendererService,
             IStoreService storeService,
-            Settings settings)
+            Settings settings,
+            WalletService walletService)
         {
             m_View = VehicleSelectorView.Create("UIPrefabs/UIP_VehicleSelector").Init();
             m_View.onDrag += OnDrag;
@@ -66,6 +67,11 @@ namespace Matterless.Floorcraft
             m_StoreService = storeService;
             m_StoreService.onPremiumUnlocked += OnPremiumUnlocked;
             m_Settings = settings;
+            m_WalletService = walletService;
+            
+            // Subscribe to NFT loading and wallet disconnect events to refresh ownership state
+            m_WalletService.onNFTsLoaded += OnNFTsLoaded;
+            m_WalletService.onWalletDisconnected += OnWalletDisconnected;
 
             // instantiate vehicles
             m_Vehicles = new List<Transform>();
@@ -108,6 +114,18 @@ namespace Matterless.Floorcraft
             UpdateView(m_CurrentPage, true);
         }
         
+        private void OnNFTsLoaded()
+        {
+            // Refresh view when NFT cache finishes loading
+            UpdateView(m_CurrentPage, true);
+        }
+        
+        private void OnWalletDisconnected()
+        {
+            // Refresh view when wallet disconnects to show vehicles as locked
+            UpdateView(m_CurrentPage, true);
+        }
+        
         private void OnSpectatorModeClicked()
         {
             m_OnSpectatorMode.Invoke();
@@ -137,9 +155,18 @@ namespace Matterless.Floorcraft
             
             m_CurrentPageTarget = page;
             var vehicle = m_Settings.vehicles[page];
+            
+            bool isNFTLocked = false;
+            if (vehicle.requiresNFT)
+            {
+                // Use the NFT token ID field, not the vehicle ID
+                bool ownsNFT = m_WalletService.IsNFTOwned(vehicle.nftTokenId.ToString());
+                isNFTLocked = !ownsNFT;
+            }
+            
             m_View.UpdateView(
                 m_LocalisationService.Translate(vehicle.nameTag),
-                m_StoreService.premiumEnabled && (vehicle.premium && !m_StoreService.isPremiumUnlocked));
+                isNFTLocked);
         }
         
         private void OnDrag(PointerEventData data)

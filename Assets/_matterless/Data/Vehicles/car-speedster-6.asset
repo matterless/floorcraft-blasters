@@ -16,7 +16,10 @@ MonoBehaviour:
   m_ResourcesPath: NewEntities/SpeedsterSpeeder
   m_AssetType: 0
   m_Size: 0.0225
-  m_Premium: 1
+  m_PersistentInSession: 0
+  m_Premium: 0
+  m_RequiresNFT: 1
+  m_NFTTokenId: 1
   m_NameTag: SPEEDSTER_6
   m_SelectorPrefab: {fileID: 6805291160783015141, guid: 84bc2ec5acad152448b4cdf9084f30d1, type: 3}
   m_Style: 0

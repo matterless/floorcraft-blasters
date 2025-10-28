@@ -16,6 +16,7 @@ MonoBehaviour:
   m_ResourcesPath: NewEntities/SpeedsterSpeeder
   m_AssetType: 0
   m_Size: 0.0225
+  m_PersistentInSession: 0
   m_Premium: 0
   m_NameTag: SPEEDSTER_1
   m_SelectorPrefab: {fileID: 6685135381701844087, guid: 381b9eba665460b439f262bcc5ad034a, type: 3}
