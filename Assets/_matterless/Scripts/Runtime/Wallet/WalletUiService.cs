@@ -62,8 +62,6 @@ namespace Matterless.Floorcraft
             m_View.SetOpenWalletButtonVisibility(true);
 
             string address = m_WalletService.GetConnectedAddress();
-            string textAddress = m_View.GetWalletAddressText(address);
-            m_View.SetConnectedAddressText(textAddress);
             m_View.SetWalletAddress(address);
 
             // Track wallet connection for user analytics
