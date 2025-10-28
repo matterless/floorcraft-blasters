@@ -159,6 +159,7 @@ namespace Matterless.Floorcraft
             m_CrownSettings = crownSettings;
 
             m_AukiWrapper.onEntityDeleted += OnSpeederDelete;
+            m_AukiWrapper.onLeft += OnSessionLeft;
         }
 
         private bool IsPlayer(uint entityId) =>
@@ -969,6 +970,31 @@ namespace Matterless.Floorcraft
             {
                 m_MySpeederEntity = m_EmptySpeederEntity;
             }
+        }
+
+        private void OnSessionLeft()
+        {
+            // Clean up all SpeederViews (this will also clean up their OffScreenIndicators via OnDestroy)
+            var speederViewKeys = new List<uint>(m_SpeederViews.Keys);
+            foreach (var entityId in speederViewKeys)
+            {
+                if (m_SpeederViews.ContainsKey(entityId))
+                {
+                    UnityEngine.Object.Destroy(m_SpeederViews[entityId].gameObject);
+                }
+            }
+            
+            // Clear all dictionaries
+            m_SpeederViews.Clear();
+            m_Simulations.Clear();
+            m_SimulationList.Clear();
+            m_Vehicles.Clear();
+            
+            // Reset my speeder entity
+            m_MySpeederEntity = m_EmptySpeederEntity;
+            
+            // Hide HUD
+            m_SpeederHUDService.Hide();
         }
 
         public void Respawn()

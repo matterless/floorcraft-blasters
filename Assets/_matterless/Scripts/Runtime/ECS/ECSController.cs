@@ -39,6 +39,12 @@ namespace Matterless.Floorcraft
             m_AukiWrapper.onComponentAdd += OnOtherComponentAdded;
             m_AukiWrapper.onComponentUpdate += OnOtherComponentUpdated;
             m_AukiWrapper.onComponentDelete += OnOtherComponentDeleted;
+            m_AukiWrapper.onLeft += OnLeftSession;
+        }
+
+        private void OnLeftSession()
+        {
+            ClearDataStructures();
         }
 
         #region InitComponent
@@ -65,8 +71,14 @@ namespace Matterless.Floorcraft
 
         public void Initialise(Session session, Action onSuccess, Action onError)
         {
+            // If initialization is already in progress, cancel it and start fresh
             if (m_ComponentInitInProgress)
-                throw new Exception("Component Init In Progress");
+            {
+                Debug.LogWarning("[ECS] Previous initialization still in progress, cancelling and starting fresh");
+                m_ComponentInitInProgress = false;
+                m_HasError = false;
+                m_ComponentAdded = 0;
+            }
 
             m_OnSuccess = onSuccess;
             m_OnError = onError;
@@ -108,8 +120,14 @@ namespace Matterless.Floorcraft
 
         public void Clear()
         {
+            // If initialization is in progress, cancel it
             if (m_ComponentInitInProgress)
-                throw new Exception("ECS init is int progress...");
+            {
+                Debug.LogWarning("[ECS] Clearing while initialization in progress, cancelling initialization");
+                m_ComponentInitInProgress = false;
+                m_HasError = false;
+                m_ComponentAdded = 0;
+            }
 
             onStateChanged?.Invoke(ECSState.None);
 

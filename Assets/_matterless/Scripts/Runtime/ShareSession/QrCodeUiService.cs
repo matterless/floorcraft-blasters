@@ -65,7 +65,6 @@ namespace Matterless.Floorcraft
 
         private void ShowLightHouse()
         {
-            m_RendererService.DisableDimm(); // Enable AR camera view
             m_MannaService.ShowQRCode();
             m_View.Show();
             PlayShareSound();
@@ -75,7 +74,6 @@ namespace Matterless.Floorcraft
 
         private void HideLightHouse()
         {
-            m_RendererService.EnableDimm(); // Re-enable dimmer for intro screen
             m_MannaService.HideQRCode();
             m_View.Hide();
             PlayHideSound();

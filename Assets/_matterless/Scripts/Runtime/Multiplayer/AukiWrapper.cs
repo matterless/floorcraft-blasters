@@ -57,10 +57,15 @@ namespace Matterless.Floorcraft
             get
             {
                 if(!isConnected) return false;
+                
+                var session = m_ConjureKit?.GetSession();
+                if (session == null) return false;
 
-                var myId = m_ConjureKit.GetSession().ParticipantId;
+                var myId = session.ParticipantId;
+                var participants = session.GetParticipants();
+                if (participants == null) return false;
 
-                foreach (var participant in m_ConjureKit.GetSession().GetParticipants())
+                foreach (var participant in participants)
                 {
                     if (myId > participant.Id)
                         return false;
@@ -156,6 +161,8 @@ namespace Matterless.Floorcraft
         public void Leave()
         {
             Debug.Log("[domain] left");
+            // Immediately set isConnected to false to prevent timing issues
+            isConnected = false;
             m_ConjureKit.Disconnect();
         }
 
@@ -364,7 +371,11 @@ namespace Matterless.Floorcraft
 
         private void OnLeft(Session session)
         {
-            isConnected = false;
+            // Only set isConnected to false if it's not already false (avoid overriding immediate setting)
+            if (isConnected)
+            {
+                isConnected = false;
+            }
             m_MyEntities.Clear();
             onLeft?.Invoke();
         }

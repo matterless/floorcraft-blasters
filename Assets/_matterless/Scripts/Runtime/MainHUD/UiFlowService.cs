@@ -29,6 +29,9 @@ namespace Matterless.Floorcraft
         private readonly AukiWrapper m_AukiWrapper;
         private readonly IGameOverUiService m_GameOverUiService;
         private readonly WalletUiService m_WalletUiService;
+        private readonly NotificationService m_NotificationService;
+        private readonly DomainService m_DomainService;
+        private readonly RendererService m_RendererService;
 
         public enum State
         {
@@ -75,7 +78,10 @@ namespace Matterless.Floorcraft
             MannaService mannaService,
             MannaService.Settings mannaSettings,
             IGameOverUiService gameOverUiService,
-            WalletUiService walletUiService)
+            WalletUiService walletUiService,
+            NotificationService notificationService,
+            DomainService domainService,
+            RendererService rendererService)
 
         {
             m_StateMachine = new StateMachine.StateMachine(
@@ -106,7 +112,7 @@ namespace Matterless.Floorcraft
             m_MannaService = mannaService;
             m_MannaSettings = mannaSettings;
             m_ScreenService.OnScreenOrientationChanged += OnScreenOrientationChanged;
-            
+            m_NotificationService = notificationService;
             // sidebar
             m_SidebarUiService = sidebarUiService;
 
@@ -165,7 +171,10 @@ namespace Matterless.Floorcraft
 
             // wallet
             m_WalletUiService = walletUiService;
-            
+
+            m_DomainService = domainService;
+            m_RendererService = rendererService;
+
             // start state machine
             // TODO:: we can check for deep link and start UI from another state
             m_StateMachine.Start((int)State.Intro);
@@ -189,6 +198,8 @@ namespace Matterless.Floorcraft
                 return;
             }
 
+            m_StateMachine.SwitchState(state);
+ 
             if (state == (int)State.Intro)
             {
                 m_ConnectionService.NewSession();
@@ -197,20 +208,26 @@ namespace Matterless.Floorcraft
             {
                 m_SpeederService.Despawn(true);
                 m_RespawnService.AddOneRespawn();
-            }
-            
-            m_StateMachine.SwitchState(state);
+                m_SpeederService.RemoveSpeeder();
+            }           
         }
 
         private void OnConnectionStateChanged(ConnectionState state)
         {
-            if (state != ConnectionState.Connected)
+            if (state == ConnectionState.Connected)
             {
-                m_StateMachine.SwitchState((int)State.Intro);
-            }
-            else if (!m_AukiWrapper.isHost)
-            {
-                m_StateMachine.SwitchState((int)State.VehicleSelector);
+                if(m_CurrentState == State.Gameplay){
+                    m_NotificationService.ShowMessage(NotificationType.OnJoinedRoom);
+                    m_SpeederService.RemoveSpeeder();
+                    m_StateMachine.SwitchState((int)State.Spawning);
+                }
+
+                if(m_CurrentState == State.Intro && m_DomainService.IsUserInitiatedConnection){
+                    m_NotificationService.ShowMessage(NotificationType.OnJoinedRoom);
+                    m_StateMachine.SwitchState((int)State.VehicleSelector);
+                    m_RendererService.DisableDimm();
+                    m_DomainService.SetUserInitiatedConnection(false);
+                }
             }
         }
         

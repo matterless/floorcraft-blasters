@@ -54,29 +54,40 @@ namespace Matterless.Floorcraft
 
         private void OnScoreComponentAdded(ScoreComponentModel model)
         {
+            // Check if we can create a label (both score and name components exist)
             if (m_NameComponentService.nameComponentModels.ContainsKey(model.entityId) && !cache.ContainsKey(model.entityId))
             {
                 AddLabel(model.entityId);
             }
+
         }
 
         private void OnNameComponentAdded(NameComponentModel model)
         {
-            Debug.Log("label name add " + model.entityId);
-            if (m_ScoreComponentService.scoreComponentModels.ContainsKey(model.entityId))
+            // Check if we can create a label (both score and name components exist)
+            if (m_ScoreComponentService.scoreComponentModels.ContainsKey(model.entityId) && !cache.ContainsKey(model.entityId))
             {
                 AddLabel(model.entityId);
             }
         }
         private void OnScoreComponentUpdate(ScoreComponentModel model)
         {
-            Debug.Log("OnScoreComponentUpdate");
             UpdateLabel();
         }
 
         private void AddLabel(uint entityId)
         {
-            Debug.Log("label add " + entityId);
+            // Double-check that both components exist before adding label
+            if (!m_ScoreComponentService.scoreComponentModels.ContainsKey(entityId))
+            {
+                return;
+            }
+            
+            if (!m_NameComponentService.nameComponentModels.ContainsKey(entityId))
+            {
+                return;
+            }
+            
             m_View.AddLabel(entityId);
             UpdateLabel();
         }
@@ -106,6 +117,7 @@ namespace Matterless.Floorcraft
             cacheList = new List<uint>(cache.Keys);
             cacheNameList = m_NameComponentService.nameComponentModels.ToDictionary(x => x.Key, x =>
                 m_NameSettings.nameTags[x.Value.model.name]);
+            
             foreach (var entity in cacheList)
             {
             
@@ -126,12 +138,15 @@ namespace Matterless.Floorcraft
         {
             cache.Clear();
             cacheList.Clear();
+            cacheNameList.Clear();
             m_View.ResetLeaderboard();
         }
 
         public void ShowLeaderBoard()
         {
             m_View.Show();
+            // Check for any missing labels that might not have been created due to component ordering issues
+            CheckForMissingLabels();
             UpdateLabel();
         }
         public void HideLeaderBoard()
@@ -142,6 +157,21 @@ namespace Matterless.Floorcraft
         public void SetOrientation(ScreenOrientation orientation)
         {
             m_View.SetLeaderboardOrientation(orientation);
+        }
+
+        /// <summary>
+        /// Check for any entities that have both score and name components but no leaderboard label
+        /// This can happen if components were added out of order during reconnection
+        /// </summary>
+        public void CheckForMissingLabels()
+        {
+            foreach (var scoreEntity in m_ScoreComponentService.scoreComponentModels.Keys)
+            {
+                if (m_NameComponentService.nameComponentModels.ContainsKey(scoreEntity) && !cache.ContainsKey(scoreEntity))
+                {
+                    AddLabel(scoreEntity);
+                }
+            }
         }
     }
 }

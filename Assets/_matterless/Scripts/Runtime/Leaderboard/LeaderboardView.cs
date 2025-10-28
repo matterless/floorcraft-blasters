@@ -41,6 +41,12 @@ namespace Matterless.Floorcraft
 
         public void AddLabel(uint entity)
         {
+            // Prevent duplicate labels for the same entity
+            if (m_LabelDictionary.ContainsKey(entity))
+            {
+                return;
+            }
+            
             LeaderboardLabel label = Instantiate(m_Label,m_Container);
             m_LabelDictionary.Add(entity,label);
             label.gameObject.SetActive(true);
@@ -103,9 +109,11 @@ namespace Matterless.Floorcraft
 
         public void ResetLeaderboard()
         {
-            foreach (var label in m_LabelDictionary)
+            // Create a copy of keys to avoid modifying dictionary while iterating
+            var keysToDelete = new List<uint>(m_LabelDictionary.Keys);
+            foreach (var key in keysToDelete)
             {
-                DeleteLabel(label.Key);
+                DeleteLabel(key);
             }
             m_LabelDictionary.Clear();
         }

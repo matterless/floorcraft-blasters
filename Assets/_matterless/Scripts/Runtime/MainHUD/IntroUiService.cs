@@ -54,6 +54,7 @@ namespace Matterless.Floorcraft
         public void Show()
         {
             m_View.Show();
+            m_RendererService.EnableDimm();
         }
 
         public void Hide()
@@ -100,6 +101,7 @@ namespace Matterless.Floorcraft
             
             onMultiplayerButtonClicked?.Invoke();
             m_AudioUiService.PlaySelectSound();
+            m_RendererService.DisableDimm();
         }
         
         private void OnStoreButtonClicked()
