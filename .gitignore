@@ -1,3 +1,29 @@
+### Paid plugins (local only)
+Assets/Plugins/AVProMovieCapture/
+Assets/Plugins/AVProMovieCapture.meta
+Assets/Plugins/EffectCore/
+Assets/Plugins/EffectCore.meta
+Assets/Plugins/RenderHeads/
+Assets/Plugins/RenderHeads.meta
+
+### Unity generated
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/UserSettings/
+/*.csproj
+/*.sln
+/*.user
+/*.unityproj
+/*.pidb
+/*.svd
+/*.suo
+/*.userprefs
+/.vs/
+/.idea/
+/*.DotSettings.user
 # Add any directories, files, or patterns you don't want to be tracked by version control
 /[Ll]ibrary/
 /[Tt]emp/
@@ -5,7 +31,6 @@
 /[Bb]uilds/
 /[Ss]creenshots/
 /[Ll]ogs/
-/[Dd]ocs/
 /UserSettings/
 /.vs/
 /.idea/

@@ -8,7 +8,7 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
 - **Spatial Multiplayer** - Share AR experiences using Auki's Posemesh (ConjureKit, Manna, Grund)
 - **Domain Sessions** - Join persistent shared AR spaces via QR codes
 - **Web3 Integration** - Wallet connectivity via Reown (WalletConnect)
-- **NFT Support** - ERC-721 token ownership verification on Base blockchain
+- **NFT Support** - ERC-1155 token ownership verification on Base blockchain
 - **Multiple Game Modes**:
   - Free For All - Solo racing
   - Join Session - Multiplayer via QR code
@@ -28,12 +28,14 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd floorcraft-blasters
    ```
 
 2. **Open in Unity:**
+
    - Launch Unity Hub
    - Click "Open" or "Add"
    - Select the `floorcraft-blasters` folder
@@ -51,6 +53,7 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
 Before running the project, you **must** configure the following:
 
 1. **Auki Posemesh SDK** (Required for multiplayer):
+
    - Get your App Key and App Secret from [Auki Console](https://console.auki.network)
    - Open `Assets/_matterless/Data/Blasters Configs`
    - Fill in Auki settings:
@@ -59,9 +62,10 @@ Before running the project, you **must** configure the following:
      - App Domain ID (optional, for testing)
 
 2. **Analytics** (Required):
+
    - Get an Amplitude App Key from [Amplitude](https://amplitude.com)
    - Open `Assets/_matterless/Data/Blasters Configs`
-   - In the Inspector, find "Analytics Settings"  
+   - In the Inspector, find "Analytics Settings"
    - Replace the placeholder with your actual Amplitude API Key
 
 3. **Optional Integrations:**
@@ -77,6 +81,7 @@ Before running the project, you **must** configure the following:
 **Note:** AR camera won't work in Editor, but you can test multiplayer logic:
 
 1. **Quick Session Testing (Editor Only):**
+
    - Press **D-O-M** keys in sequence to simulate scanning a domain QR code
    - Press **D-E-V** keys in sequence to open debug menu
 
@@ -87,11 +92,13 @@ Before running the project, you **must** configure the following:
 #### Building for iOS
 
 1. **Configure iOS Build Settings:**
+
    - File → Build Settings
    - Select iOS platform
    - Switch Platform (if needed)
 
 2. **Player Settings:**
+
    - Set Bundle Identifier (e.g., `com.yourcompany.floorcraft`)
    - Set Camera Usage Description
    - Minimum iOS Version: 14.0
@@ -104,11 +111,13 @@ Before running the project, you **must** configure the following:
 #### Building for Android
 
 1. **Configure Android Build Settings:**
+
    - File → Build Settings
    - Select Android platform
    - Switch Platform (if needed)
 
 2. **Player Settings:**
+
    - Set Package Name
    - Minimum API Level: 24 (Android 7.0)
 
@@ -150,19 +159,23 @@ Assets/
 ### Troubleshooting
 
 **"Missing interface binding" errors:**
+
 - Check that all API keys are filled in `Blasters Configs`
 - Restart Unity after configuration changes
 
 **AR camera shows black screen:**
+
 - Ensure you're running on a real device (not simulator/editor)
 - Check camera permissions in device settings
 
 **Multiplayer connection fails:**
+
 - Verify Auki App Key and App Secret are correct
 - Check device internet connection
 - Ensure you're on the correct build environment (staging/prod)
 
 **Build errors on iOS/Android:**
+
 - Verify minimum OS versions meet requirements
 - Check that AR Foundation and ARCore/ARKit XR Plugins are installed
 
@@ -183,6 +196,7 @@ You will also need an [Amplitude](https://amplitude.com/) App key in `AnalyticsS
 This project uses [Reown (formerly WalletConnect)](https://reown.com/) for blockchain wallet connectivity. To set up wallet functionality:
 
 1. **Get your Reown Project ID:**
+
    - Visit [https://cloud.reown.com](https://cloud.reown.com)
    - Create a free account or sign in
    - Create a new project and copy your Project ID
@@ -199,43 +213,47 @@ This project uses [Reown (formerly WalletConnect)](https://reown.com/) for block
      - **Project URL:** Your project website
      - **Project Icon URL:** URL to your app icon (recommended size: 512x512px)
 
-## NFT Integration with ERC-721
+## NFT Integration with ERC-1155
 
-This project includes NFT (Non-Fungible Token) integration using [Nethereum](https://nethereum.com/) for reading ERC-721 tokens on the Base blockchain. The implementation is read-only (no transactions), making it safe and free to use on mainnet.
+This project includes NFT (Non-Fungible Token) integration using [Nethereum](https://nethereum.com/) and JSON-RPC fallbacks for reading ERC-1155 tokens on the Base blockchain. The implementation is read-only (no transactions), making it safe and free to use on mainnet.
 
 1. **Get your Alchemy API Key:**
+
    - Visit [https://alchemy.com](https://alchemy.com)
    - Create a free account or sign in
    - Create a new App and select "Base" as the network
    - Copy your API Key from the dashboard
 
 2. **Configure in Unity:**
+
    - Open Unity Editor
    - Navigate to `Assets/_matterless/Data/`
    - Select `Blasters Configs`
    - In the Inspector, find the "Chain Settings" section
    - Replace the placeholder values:
-     - **NFT Contract Address:** Your ERC-721 contract address on Base blockchain (e.g., `0x1234...`)
+     - **NFT Contract Address:** Your ERC-1155 contract address on Base blockchain (e.g., `0x1234...`)
      - **RPC Endpoint:** Keep as `https://base-mainnet.g.alchemy.com/v2/`
      - **API Key:** Your Alchemy API Key from step 1
 
 3. **Features:**
-   - Check NFT ownership by wallet address
-   - Query all token IDs owned by an address
-   - Retrieve token metadata URIs
-   - Get contract information (name, symbol, total supply)
+
+   - Check ownership of specific token IDs (per-vehicle gating)
+   - Retrieve token metadata URIs (supports `{id}` replacement and IPFS gateways)
+   - Load NFT images from metadata for UI display
    - Read-only operations (no gas fees or transactions)
 
 4. **Usage in Code:**
    ```csharp
    // NFTService is available through dependency injection
-   var tokens = await nftService.GetOwnedTokenIds(walletAddress);
-   var tokenURI = await nftService.GetTokenURI(tokenId);
+   bool owns = await nftService.OwnsToken(walletAddress, tokenId);
+   string tokenURI = await nftService.GetTokenURI(tokenId);
+   var sprite = await nftService.LoadNFTImage(tokenId);
    ```
 
 ## Important Security Note
 
 **Never commit your actual API keys to the repository.** The config files should remain with placeholder text in version control. Only fill in real values in your local development environment. This applies to:
+
 - Auki posemesh App Key and Secret
 - Reown WalletConnect Project ID
 - Alchemy API Key (for NFT/blockchain access)

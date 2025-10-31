@@ -37,8 +37,8 @@ namespace Matterless.Floorcraft.Editor
             }
             
             // Why we need this -> https://docs.unity3d.com/ScriptReference/QualitySettings-masterTextureLimit.html
-            int storedQualitySetting = QualitySettings.masterTextureLimit;
-            QualitySettings.masterTextureLimit = 0;
+            int storedQualitySetting = QualitySettings.globalTextureMipmapLimit;
+            QualitySettings.globalTextureMipmapLimit = 0;
             
             Texture2DArray textureArray = new Texture2DArray(textures[0].width, textures[0].height, textures.Length, textures[0].format, 9, true);
             for (int i = 0; i < textures.Length; i++)
@@ -48,7 +48,7 @@ namespace Matterless.Floorcraft.Editor
             //textureArray.Apply();
             AssetDatabase.CreateAsset(textureArray, "Assets/TextureArray.asset");
             
-            QualitySettings.masterTextureLimit = storedQualitySetting;
+            QualitySettings.globalTextureMipmapLimit = storedQualitySetting;
         }
     }
 }
