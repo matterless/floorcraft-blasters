@@ -87,6 +87,8 @@ namespace Matterless.Floorcraft
         public Vehicle GetVehicle(uint entityId) => m_Vehicles[entityId];
         public Action onRespawn;
         public Action onSpawn;
+        /// <summary>Fired when a speeder view is added (local or remote). Used e.g. to attach name tags when view appears after name component synced.</summary>
+        public Action<uint> onSpeederViewAdded;
 
         // When your speeder is killed
         public Action onKill;
@@ -350,6 +352,8 @@ namespace Matterless.Floorcraft
             m_SpeederViews.Add(model.entityId, speederView);
             m_SpeederViews[model.entityId].transform
                 .SetPositionAndRotation(initPose.position, initPose.rotation);
+
+            onSpeederViewAdded?.Invoke(model.entityId);
 
             // init HUD
             if (model.isMine)
@@ -775,7 +779,12 @@ namespace Matterless.Floorcraft
 
                         m_CrownService.OnCrownKeeperDestroy(model.entityId);
 
-                        //onKill?.Invoke();
+                        // When WE are the one who died (killed by host/obstacle etc.), same flow as local death: HUD + transition to Spawning
+                        if (IsPlayer(model.entityId))
+                        {
+                            m_SpeederHUDService.Totaled();
+                            onKill?.Invoke();
+                        }
                         break;
                     case MessageModel.Message.Respawn:
                         // init other simulation

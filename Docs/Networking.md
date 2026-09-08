@@ -32,7 +32,7 @@ See ConjureKit docs for details on each: https://conjurekit.dev/unity/
   - Events: session join/leave, participant join/leave, entity add/delete/update pose, component add/update/delete, custom messages, host changed, state changes
   - Methods: `Install`, `InstallManna`, `Join`/`Leave`, `AddEntity`/`DeleteEntity`, `BroadcastCustomMessage`, target custom messages
 - `AukiWrapper`:
-  - Constructs `ConjureKit` with app keys and AR camera transform
+  - Constructs `ConjureKit` with the app key and secret (from `AppSecrets`, see [Secrets.md](Secrets.md)) and AR camera transform
   - Instantiates `Vikja` and `Grund`, subscribes to all ConjureKit events
   - Optionally auto-connects (or connects to a specific session in-editor)
   - Provides helper APIs for entities and messaging

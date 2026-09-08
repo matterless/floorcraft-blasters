@@ -51,21 +51,64 @@ namespace Matterless.Floorcraft
         private readonly Dictionary<string, bool> m_NFTOwnershipCache = new Dictionary<string, bool>();
         private bool m_NFTCacheInitialized = false;
         
+        // ERC-1155 (Active): Cache whether user owns the specific Auki Domain NFT token
+        private bool m_OwnsErc1155NFT = false;
+        
+        // ERC-721 (Secondary): Cache whether user owns ANY Floorcraft NFT from the collection
+        private bool m_OwnsErc721NFT = false;
+        
+        // Track owned token IDs from each standard
+        private readonly List<string> m_OwnedErc1155TokenIds = new List<string>();
+        private readonly List<string> m_OwnedErc721TokenIds = new List<string>();
+        
+        private const string NFT_CACHE_PREFS_KEY = "NFTCacheData";
+        private string m_CachedWalletAddress = string.Empty;
+        
+        [System.Serializable]
+        private class NFTCacheData
+        {
+            public string walletAddress;
+            public bool ownsErc1155NFT;
+            public bool ownsErc721NFT;
+            public List<string> ownedErc1155TokenIds = new List<string>();
+            public List<string> ownedErc721TokenIds = new List<string>();
+        }
+        
         // Public accessors
         public ChainSettings chainSettings => m_ChainSettings;
+        public bool hasCachedSession => m_NFTCacheInitialized && !string.IsNullOrEmpty(m_CachedWalletAddress);
+        public string cachedWalletAddress => m_CachedWalletAddress;
 
         public WalletService(WalletSettings walletSettings, ChainSettings chainSettings)
         {
             m_WalletSettings = walletSettings;
             m_ChainSettings = chainSettings;
 
+            RestoreNFTCacheOnStartup();
+            
             InstantiateAppKitPrefab();
             InitializeWallet();
         }
 
         public async void Disconnect()
         {
-            await AppKit.DisconnectAsync();
+            if (AppKit.IsAccountConnected)
+            {
+                await AppKit.DisconnectAsync();
+                return;
+            }
+            
+            m_NFTOwnershipCache.Clear();
+            m_NFTCacheInitialized = false;
+            m_OwnsErc1155NFT = false;
+            m_OwnsErc721NFT = false;
+            m_OwnedErc1155TokenIds.Clear();
+            m_OwnedErc721TokenIds.Clear();
+            m_CachedWalletAddress = string.Empty;
+            
+            ClearNFTCacheFromDisk();
+            
+            onWalletDisconnected?.Invoke();
         }
 
         public string GetConnectedAddress()
@@ -74,7 +117,7 @@ namespace Matterless.Floorcraft
             {
                 return AppKit.Account.Address;
             }
-            return string.Empty;
+            return m_CachedWalletAddress;
         }
 
         private async Task InitializeWallet()
@@ -111,7 +154,30 @@ namespace Matterless.Floorcraft
                 AppKit.AccountConnected += OnAccountConnected;
                 AppKit.AccountDisconnected += OnAccountDisconnected;
                 AppKit.ModalController.OpenStateChanged += OnModalStateChanged;
+                
+                if (AppKit.IsAccountConnected)
+                {
+                    await HandleRestoredSession();
+                }
             }
+        }
+        
+        private async Task HandleRestoredSession()
+        {
+            string walletAddress = AppKit.Account.Address;
+            Debug.Log($"[WalletService] Restored wallet session for {walletAddress}");
+            
+            onWalletConnected?.Invoke();
+            
+            if (TryLoadNFTCacheFromDisk(walletAddress))
+            {
+                Debug.Log("[WalletService] NFT cache restored from disk for returning session");
+                onNFTsLoaded?.Invoke();
+                _ = RefreshNFTCacheInBackground();
+                return;
+            }
+            
+            await InitializeNFTCache();
         }
 
         public void Connect()
@@ -127,13 +193,25 @@ namespace Matterless.Floorcraft
 
         private async void OnAccountConnected(object sender, Connector.AccountConnectedEventArgs e)
         {
-            string address = e.Account.Address;
-
-            onWalletConnected?.Invoke();
-            
-            // Clear cache and reinitialize for new wallet
             m_NFTOwnershipCache.Clear();
             m_NFTCacheInitialized = false;
+            m_OwnsErc1155NFT = false;
+            m_OwnsErc721NFT = false;
+            m_OwnedErc1155TokenIds.Clear();
+            m_OwnedErc721TokenIds.Clear();
+            
+            onWalletConnected?.Invoke();
+            
+            string walletAddress = AppKit.Account.Address;
+            
+            if (TryLoadNFTCacheFromDisk(walletAddress))
+            {
+                Debug.Log("[WalletService] NFT cache restored from disk");
+                onNFTsLoaded?.Invoke();
+                _ = RefreshNFTCacheInBackground();
+                return;
+            }
+            
             await InitializeNFTCache();
         }
 
@@ -152,9 +230,15 @@ namespace Matterless.Floorcraft
 
         private void OnAccountDisconnected(object sender, Connector.AccountDisconnectedEventArgs e)
         {
-            // Clear NFT cache when wallet disconnects
             m_NFTOwnershipCache.Clear();
             m_NFTCacheInitialized = false;
+            m_OwnsErc1155NFT = false;
+            m_OwnsErc721NFT = false;
+            m_OwnedErc1155TokenIds.Clear();
+            m_OwnedErc721TokenIds.Clear();
+            m_CachedWalletAddress = string.Empty;
+            
+            ClearNFTCacheFromDisk();
             
             onWalletDisconnected?.Invoke();
         }
@@ -355,35 +439,67 @@ namespace Matterless.Floorcraft
             if (m_NFTCacheInitialized || !AppKit.IsAccountConnected)
                 return;
                 
+            string walletAddress = AppKit.Account.Address;
+            
+            // === ERC-1155 (Active/Primary) ===
+            // Use Alchemy getNFTsForOwner so any token ID from the contract counts (e.g. each domain mint gets a different ID).
             try
             {
-                // Get vehicle token IDs from the vehicle selector settings
-                var vehicleTokenIds = GetVehicleTokenIds();
-                
-                var nftService = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
-                
-                foreach (string tokenId in vehicleTokenIds)
+                if (m_ChainSettings.IsConfigured())
                 {
-                    try
-                    {
-                        bool ownsToken = await nftService.OwnsToken(AppKit.Account.Address, tokenId);
-                        m_NFTOwnershipCache[tokenId] = ownsToken;
-                    }
-                    catch (Exception ex)
-                    {
-                        m_NFTOwnershipCache[tokenId] = false;
-                    }
+                    var (ownsAny, ownedTokenIds) = await AlchemyNftApi.GetOwnedNftsFromContractAsync(
+                        walletAddress,
+                        m_ChainSettings.nftContractAddress,
+                        m_ChainSettings.apiKey);
+                    m_OwnsErc1155NFT = ownsAny;
+                    if (ownsAny && ownedTokenIds != null)
+                        m_OwnedErc1155TokenIds.AddRange(ownedTokenIds);
                 }
-                
-                m_NFTCacheInitialized = true;
-                
-                // Notify that NFT cache is ready
-                onNFTsLoaded?.Invoke();
+                else
+                {
+                    // Fallback: single token ID check if Alchemy not configured
+                    var nft1155Service = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                    string tokenId = m_ChainSettings.nft1155TokenId;
+                    m_OwnsErc1155NFT = await nft1155Service.OwnsToken(walletAddress, tokenId);
+                    if (m_OwnsErc1155NFT)
+                        m_OwnedErc1155TokenIds.Add(tokenId);
+                }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to initialize NFT cache: {ex.Message}");
+                Debug.LogError($"Failed to check ERC-1155 ownership: {ex.Message}");
+                m_OwnsErc1155NFT = false;
             }
+            
+            // === ERC-721 (Secondary) ===
+            try
+            {
+                if (m_ChainSettings.IsERC721Configured())
+                {
+                    var nft721Service = new NFT721Service(m_ChainSettings.nft721ContractAddress, m_ChainSettings.rpcUrl);
+                    
+                    // Check if the wallet owns ANY token from the Floorcraft collection
+                    m_OwnsErc721NFT = await nft721Service.OwnsAnyToken(walletAddress);
+                    
+                    if (m_OwnsErc721NFT)
+                    {
+                        // Try to get specific owned token IDs (requires ERC721Enumerable)
+                        var ownedIds = await nft721Service.GetOwnedTokenIds(walletAddress);
+                        m_OwnedErc721TokenIds.AddRange(ownedIds);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to check ERC-721 ownership: {ex.Message}");
+                m_OwnsErc721NFT = false;
+            }
+            
+            m_NFTCacheInitialized = true;
+            
+            SaveNFTCacheToDisk();
+            
+            onNFTsLoaded?.Invoke();
         }
         
         private List<string> GetVehicleTokenIds()
@@ -431,6 +547,12 @@ namespace Matterless.Floorcraft
             return tokenIds;
         }
         
+        /// <summary>
+        /// Check if the connected wallet owns any NFT (ERC-1155 or ERC-721).
+        /// ERC-1155 is checked first (primary), then ERC-721 (secondary).
+        /// </summary>
+        /// <param name="tokenId">Token ID (used for ERC-1155 specific checks, ignored for general gating)</param>
+        /// <returns>True if wallet owns any supported NFT</returns>
         public bool IsNFTOwned(string tokenId)
         {
             if (!m_NFTCacheInitialized)
@@ -438,33 +560,221 @@ namespace Matterless.Floorcraft
                 return false;
             }
             
-            return m_NFTOwnershipCache.TryGetValue(tokenId, out bool owned) && owned;
+            // ERC-1155 (primary) OR ERC-721 (secondary) ownership unlocks NFT-gated content
+            return m_OwnsErc1155NFT || m_OwnsErc721NFT;
         }
         
         /// <summary>
-        /// Get list of token IDs that are owned by the connected wallet
+        /// Get combined list of all owned token IDs (ERC-1155 first, then ERC-721)
         /// </summary>
         public List<string> GetOwnedTokenIds()
         {
-            var ownedTokens = new List<string>();
-            foreach (var kvp in m_NFTOwnershipCache)
-            {
-                if (kvp.Value)
-                {
-                    ownedTokens.Add(kvp.Key);
-                }
-            }
-            return ownedTokens;
+            var allOwned = new List<string>();
+            allOwned.AddRange(m_OwnedErc1155TokenIds);
+            allOwned.AddRange(m_OwnedErc721TokenIds);
+            return allOwned;
         }
         
         /// <summary>
-        /// Get count of NFTs owned by the connected wallet
+        /// Get list of owned ERC-1155 token IDs
+        /// </summary>
+        public List<string> GetOwnedErc1155TokenIds()
+        {
+            return new List<string>(m_OwnedErc1155TokenIds);
+        }
+        
+        /// <summary>
+        /// Get list of owned ERC-721 token IDs
+        /// </summary>
+        public List<string> GetOwnedErc721TokenIds()
+        {
+            return new List<string>(m_OwnedErc721TokenIds);
+        }
+        
+        /// <summary>
+        /// Get total count of NFTs owned by the connected wallet (both standards)
         /// </summary>
         public int GetOwnedNFTCount()
         {
-            return GetOwnedTokenIds().Count;
+            return m_OwnedErc1155TokenIds.Count + m_OwnedErc721TokenIds.Count;
         }
         
+        private void RestoreNFTCacheOnStartup()
+        {
+            if (!PlayerPrefs.HasKey(NFT_CACHE_PREFS_KEY))
+                return;
+            
+            try
+            {
+                string json = PlayerPrefs.GetString(NFT_CACHE_PREFS_KEY);
+                var cacheData = JsonConvert.DeserializeObject<NFTCacheData>(json);
+                
+                if (cacheData == null || string.IsNullOrEmpty(cacheData.walletAddress))
+                    return;
+                
+                m_CachedWalletAddress = cacheData.walletAddress;
+                m_OwnsErc1155NFT = cacheData.ownsErc1155NFT;
+                m_OwnsErc721NFT = cacheData.ownsErc721NFT;
+                m_OwnedErc1155TokenIds.Clear();
+                m_OwnedErc1155TokenIds.AddRange(cacheData.ownedErc1155TokenIds ?? new List<string>());
+                m_OwnedErc721TokenIds.Clear();
+                m_OwnedErc721TokenIds.AddRange(cacheData.ownedErc721TokenIds ?? new List<string>());
+                m_NFTCacheInitialized = true;
+                
+                Debug.Log($"[WalletService] NFT cache restored on startup for {m_CachedWalletAddress}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WalletService] Failed to restore NFT cache on startup: {ex.Message}");
+            }
+        }
+        
+        private void SaveNFTCacheToDisk()
+        {
+            try
+            {
+                string address = AppKit.IsAccountConnected ? AppKit.Account.Address : m_CachedWalletAddress;
+                m_CachedWalletAddress = address;
+                
+                var cacheData = new NFTCacheData
+                {
+                    walletAddress = address,
+                    ownsErc1155NFT = m_OwnsErc1155NFT,
+                    ownsErc721NFT = m_OwnsErc721NFT,
+                    ownedErc1155TokenIds = new List<string>(m_OwnedErc1155TokenIds),
+                    ownedErc721TokenIds = new List<string>(m_OwnedErc721TokenIds)
+                };
+                
+                string json = JsonConvert.SerializeObject(cacheData);
+                PlayerPrefs.SetString(NFT_CACHE_PREFS_KEY, json);
+                PlayerPrefs.Save();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WalletService] Failed to save NFT cache to disk: {ex.Message}");
+            }
+        }
+        
+        private bool TryLoadNFTCacheFromDisk(string walletAddress)
+        {
+            if (!PlayerPrefs.HasKey(NFT_CACHE_PREFS_KEY))
+                return false;
+            
+            try
+            {
+                string json = PlayerPrefs.GetString(NFT_CACHE_PREFS_KEY);
+                var cacheData = JsonConvert.DeserializeObject<NFTCacheData>(json);
+                
+                if (cacheData == null || 
+                    !string.Equals(cacheData.walletAddress, walletAddress, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                
+                m_OwnsErc1155NFT = cacheData.ownsErc1155NFT;
+                m_OwnsErc721NFT = cacheData.ownsErc721NFT;
+                m_OwnedErc1155TokenIds.Clear();
+                m_OwnedErc1155TokenIds.AddRange(cacheData.ownedErc1155TokenIds ?? new List<string>());
+                m_OwnedErc721TokenIds.Clear();
+                m_OwnedErc721TokenIds.AddRange(cacheData.ownedErc721TokenIds ?? new List<string>());
+                m_NFTCacheInitialized = true;
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WalletService] Failed to load NFT cache from disk: {ex.Message}");
+                return false;
+            }
+        }
+        
+        private void ClearNFTCacheFromDisk()
+        {
+            PlayerPrefs.DeleteKey(NFT_CACHE_PREFS_KEY);
+            PlayerPrefs.Save();
+        }
+        
+        /// <summary>
+        /// Re-fetches NFT ownership from the network without blocking the user.
+        /// If ownership changed, updates in-memory state, saves to disk, and re-fires onNFTsLoaded.
+        /// On network failure, the existing cached data is preserved.
+        /// </summary>
+        private async Task RefreshNFTCacheInBackground()
+        {
+            if (!AppKit.IsAccountConnected)
+                return;
+            
+            string walletAddress = AppKit.Account.Address;
+            
+            bool freshOwns1155 = false;
+            bool freshOwns721 = false;
+            var freshErc1155Ids = new List<string>();
+            var freshErc721Ids = new List<string>();
+            
+            try
+            {
+                if (m_ChainSettings.IsConfigured())
+                {
+                    var (ownsAny, ownedTokenIds) = await AlchemyNftApi.GetOwnedNftsFromContractAsync(
+                        walletAddress, m_ChainSettings.nftContractAddress, m_ChainSettings.apiKey);
+                    freshOwns1155 = ownsAny;
+                    if (ownsAny && ownedTokenIds != null)
+                        freshErc1155Ids.AddRange(ownedTokenIds);
+                }
+                else
+                {
+                    var nft1155Service = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                    freshOwns1155 = await nft1155Service.OwnsToken(walletAddress, m_ChainSettings.nft1155TokenId);
+                    if (freshOwns1155)
+                        freshErc1155Ids.Add(m_ChainSettings.nft1155TokenId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WalletService] Background refresh ERC-1155 failed, keeping cache: {ex.Message}");
+                return;
+            }
+            
+            try
+            {
+                if (m_ChainSettings.IsERC721Configured())
+                {
+                    var nft721Service = new NFT721Service(m_ChainSettings.nft721ContractAddress, m_ChainSettings.rpcUrl);
+                    freshOwns721 = await nft721Service.OwnsAnyToken(walletAddress);
+                    if (freshOwns721)
+                    {
+                        var ownedIds = await nft721Service.GetOwnedTokenIds(walletAddress);
+                        freshErc721Ids.AddRange(ownedIds);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[WalletService] Background refresh ERC-721 failed, keeping cache: {ex.Message}");
+                return;
+            }
+            
+            bool changed = freshOwns1155 != m_OwnsErc1155NFT || freshOwns721 != m_OwnsErc721NFT;
+            
+            m_OwnsErc1155NFT = freshOwns1155;
+            m_OwnsErc721NFT = freshOwns721;
+            m_OwnedErc1155TokenIds.Clear();
+            m_OwnedErc1155TokenIds.AddRange(freshErc1155Ids);
+            m_OwnedErc721TokenIds.Clear();
+            m_OwnedErc721TokenIds.AddRange(freshErc721Ids);
+            
+            SaveNFTCacheToDisk();
+            
+            if (changed)
+            {
+                Debug.Log("[WalletService] NFT ownership changed during background refresh");
+                onNFTsLoaded?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// Check if wallet owns any NFT (ERC-1155 primary, ERC-721 secondary).
+        /// </summary>
+        /// <param name="tokenId">Token ID for ERC-1155 check</param>
+        /// <returns>True if wallet owns any supported NFT</returns>
         public async Task<bool> CheckNFTOwnership(string tokenId)
         {
             if (!AppKit.IsAccountConnected)
@@ -475,17 +785,37 @@ namespace Matterless.Floorcraft
 
             try
             {
-                // Create NFTService instance for ERC-1155
-                var nftService = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                // Check ERC-1155 first (primary) - use Alchemy "owns any from contract" when configured
+                if (m_ChainSettings.IsConfigured())
+                {
+                    bool owns1155 = await AlchemyNftApi.OwnsAnyNftFromContractAsync(
+                        AppKit.Account.Address,
+                        m_ChainSettings.nftContractAddress,
+                        m_ChainSettings.apiKey);
+                    if (owns1155)
+                        return true;
+                }
+                else
+                {
+                    var nft1155Service = new NFTService(m_ChainSettings.nftContractAddress, m_ChainSettings.rpcUrl);
+                    bool owns1155 = await nft1155Service.OwnsToken(AppKit.Account.Address, m_ChainSettings.nft1155TokenId);
+                    if (owns1155)
+                        return true;
+                }
+
+                // Fallback to ERC-721 (secondary)
+                if (m_ChainSettings.IsERC721Configured())
+                {
+                    var nft721Service = new NFT721Service(m_ChainSettings.nft721ContractAddress, m_ChainSettings.rpcUrl);
+                    bool owns721 = await nft721Service.OwnsAnyToken(AppKit.Account.Address);
+                    return owns721;
+                }
                 
-                
-                // Check if user owns the token
-                bool ownsToken = await nftService.OwnsToken(AppKit.Account.Address, tokenId);
-                
-                return ownsToken;
+                return false;
             }
             catch (System.Exception ex)
             {
+                Debug.LogError($"Error checking NFT ownership: {ex.Message}");
                 return false;
             }
         }

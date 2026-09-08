@@ -4,22 +4,25 @@ namespace Matterless.Floorcraft
 {
     /// <summary>
     /// Analytics configuration settings for Amplitude.
-    /// Configure your Amplitude API key here.
-    /// Get your API key from https://amplitude.com
+    /// The API key is not serialized: it comes from AppSecrets (see Docs/Secrets.md).
     /// </summary>
     [System.Serializable]
     public class AnalyticsSettings
     {
+        [System.NonSerialized] private string m_AmplitudeApiKey;
+
         [Header("Amplitude Configuration")]
-        [Tooltip("Amplitude API Key (get from https://amplitude.com)")]
-        [SerializeField] private string m_AmplitudeApiKey = "Get your Amplitude API Key from https://amplitude.com";
-        
         [Tooltip("Enable debug logging for analytics events")]
         [SerializeField] private bool m_EnableLogging = true;
         
         // Public accessors
         public string amplitudeApiKey => m_AmplitudeApiKey;
         public bool enableLogging => m_EnableLogging;
+
+        internal void SetSecrets(string amplitudeApiKey)
+        {
+            m_AmplitudeApiKey = amplitudeApiKey;
+        }
         
         /// <summary>
         /// Check if settings are properly configured
@@ -30,7 +33,7 @@ namespace Matterless.Floorcraft
                 m_AmplitudeApiKey.StartsWith("YOUR_") || 
                 m_AmplitudeApiKey.StartsWith("Get your"))
             {
-                Debug.LogWarning("[AnalyticsSettings] Amplitude API key is not set! Analytics will not work. Get one from https://amplitude.com");
+                Debug.LogWarning("[AnalyticsSettings] Amplitude API key is not set! Analytics will not work. Set AMPLITUDE_API_KEY in .env (see Docs/Secrets.md).");
                 return false;
             }
             

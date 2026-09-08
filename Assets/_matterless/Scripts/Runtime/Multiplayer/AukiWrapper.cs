@@ -382,9 +382,9 @@ namespace Matterless.Floorcraft
 
         private void OnJoined(Session session)
         {
-            Debug.Log($"Joined session {session.Id} with participant id {session.ParticipantId} ");
             isConnected = true;
             m_Session = session;
+            Debug.Log($"Joined session {session.Id} with participant id {session.ParticipantId} ");
             onJoined?.Invoke(session);
             m_JoinTimestamp = Time.time;
             m_AnalyticsService.ArSessionEnter(session.Id , (uint)session.GetParticipants().Count);

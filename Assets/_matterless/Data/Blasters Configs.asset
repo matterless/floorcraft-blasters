@@ -16,8 +16,8 @@ MonoBehaviour:
     m_TargetFrameRate: 30
     m_ArMatchFrameRateRequested: 0
   m_PrivacyPolicySettings:
-    m_TOS_Link: https://your-company.com/termsofservice
-    m_PP_Link: https://your-company.com/privacypolicy
+    m_TOS_Link: https://www.auki.com/eula-floorcraft
+    m_PP_Link: https://www.auki.com/privacypolicy
   m_DomainSettings:
     m_Admin: 0
   m_HeartbeatSettings:
@@ -25,12 +25,9 @@ MonoBehaviour:
     m_HeartbeatFrequencyThresholdPercentage: 0.2
     m_OnlyMasterClient: 0
   m_AukiSettings:
-    m_AppKey: Get your Auki App Key from https://developer.aukilabs.com
-    m_AppSecret: Get your Auki App Secret from https://developer.aukilabs.com
     m_LogLevel: 3
     m_AutoJoinOnStart: 0
     m_UseGrund: 1
-    m_AppDomainId: Get your Auki Domain ID from https://developer.aukilabs.com
     m_MannaSettings:
       m_ScanningType: 10
       m_HighScanningFrequency: 0.1
@@ -43,12 +40,9 @@ MonoBehaviour:
     m_HumanSegmentationStencilMode: 0
     m_EnvironmentDepthMode: 0
     m_UseThisSessionIdInEditor: 0
-    m_SessionId: 
   m_AnalyticsSettings:
-    m_AmplitudeApiKey: Get your Amplitude API Key from https://amplitude.com
     m_EnableLogging: 1
   m_WalletSettings:
-    m_ProjectId: Get your Reown Project ID from https://cloud.reown.com
     m_ProjectName: 'Floorcraft: Blasters'
     m_ProjectDescription: 'Floorcraft: Blasters - A multiplayer AR combat racing
       game where players battle with futuristic vehicles in shared augmented reality
@@ -57,9 +51,10 @@ MonoBehaviour:
     m_ProjectUrl: https://www.aukilabs.com/solutions/software/floorcraft
     m_ProjectIconUrl: https://raw.githubusercontent.com/matterless/floorcraft-blasters/develop/Assets/_matterless/Graphics/AppIcons/Blasters-AppIcon.png
   m_ChainSettings:
-    m_NftContractAddress: Get your NFT Contract Address
+    m_NftContractAddress: 0xC3Ff4ce2419b80aD638D1253cD5933045e924155
+    m_Nft1155TokenId: 64306102522383898777692056113347394168783302164976809436283082385802875895808
+    m_Nft721ContractAddress: 0xe664b8B0BE6C4dAeA83C44b77Da6106313728F39
     m_RpcEndpoint: https://base-mainnet.g.alchemy.com/v2/
-    m_ApiKey: Get your Alchemy API Key from https://alchemy.com
   m_RaycastSettings:
     m_TrackableType: 1
   m_ConnectionIndicationSettings:
@@ -342,6 +337,12 @@ MonoBehaviour:
     m_SpawnIncreasePerWave: 0
     m_TargetMaxHealth: 5
     m_PlayAreaRadius: 50
+  m_RecordingSettings:
+    m_MaxDuration: 60
+    m_OutputFolder: Captures
+    m_PhotoSound: 
+    m_StartSound: 
+    m_StopSound: 
   m_WorldScaleSettings:
     m_WorldScale: 0.7
   m_BackgroundMusic: {fileID: 8300000, guid: 146c59b023d3349e79421c652ab9647c, type: 3}

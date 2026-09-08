@@ -57,7 +57,7 @@ namespace Matterless.Floorcraft
         }
 
         // This works only for host
-        public bool isMayhemStartedForHost => m_MayhemModeInstance.isStarted;
+        public bool isMayhemStartedForHost => m_MayhemModeInstance != null && m_MayhemModeInstance.isStarted;
 
         public MayhemModeService(
             IAukiWrapper aukiWrapper,
@@ -98,6 +98,7 @@ namespace Matterless.Floorcraft
             m_AukiWrapper.onJoined += OnJoined;
             m_AukiWrapper.onEntityDeleted += OnEntityDeleted;
             m_AukiWrapper.onHostChanged += OnHostChanged;
+            m_AukiWrapper.onLeft += OnSessionLeft;
             m_AukiWrapper.onCustomMessageBroadcast += OnCustomMessageBroadcast;
             m_SpawnLocationsService.onSpawnLocationsUpdated += OnSpawnLocationsUpdated;
             
@@ -171,9 +172,28 @@ namespace Matterless.Floorcraft
             m_MayhemUiService.HideLabels();
         }
 
+        /// <summary>
+        /// Reset all Mayhem state when leaving the session so re-enter (e.g. after back to Intro) works correctly.
+        /// </summary>
+        private void OnSessionLeft()
+        {
+            m_MayhemModeInstance = null;
+            m_MayhemModeInstances.Clear();
+            m_View = null;
+            m_CurrentWave = -1;
+            m_CurrentHealth = m_Settings.targetMaxHealth;
+            m_MayhemObstacleEntities.Clear();
+            m_Entities.Clear();
+            m_IsMayhemRunning = false;
+            m_MayhemUiService.HideLabels();
+            m_MayhemUiService.HideButton();
+            m_MayhemUiService.Hide();
+        }
+
         private void OnSpawnLocationsUpdated()
         {
-            m_View.ActivateSpawnPoints(m_SpawnLocationsService.currentLocationIndexes);
+            if (m_View != null)
+                m_View.ActivateSpawnPoints(m_SpawnLocationsService.currentLocationIndexes);
         }
 
         private void OnEventMessage(MessageModel.Message message)
@@ -192,7 +212,8 @@ namespace Matterless.Floorcraft
                     m_CurrentWave++;
                     m_MayhemUiService.UpdateWaveNumber(m_CurrentWave);
                     m_MayhemUiService.ShowLabels();
-                    m_View.DeactivateSpawnPoints();
+                    if (m_View != null)
+                        m_View.DeactivateSpawnPoints();
                     return;
                 case MessageModel.Message.ObstacleTotaled:
                     m_IsMayhemRunning = false;

@@ -18,6 +18,7 @@ namespace Matterless.Floorcraft
             container.BindInstance(appConfig.networkServiceSettings);
             container.BindInstance(appConfig.audioUiSettings);
             container.BindInstance(appConfig.rendererSettings);
+            container.BindInstance(appConfig.recordingSettings);
 
             // sevices
             container.Bind<HeaderUiService>();
@@ -31,7 +32,13 @@ namespace Matterless.Floorcraft
             container.Bind<ConnectionIndicatorService>();
             container.Bind<QrCodeUiService>();
             container.Bind<ObstaclesUiService>();
+#if AVPRO_MOVIECAPTURE
+            // AVPro Movie Capture is a paid plugin that is not part of the open-source repository.
+            // The define comes from Assets/_matterless/Scripts/Runtime/csc.rsp, written by tools/paid-assets.sh.
+            container.Bind<IRecordingService, RecordingService>();
+#else
             container.Bind<IRecordingService, DummyRecordingService>();
+#endif
 
             // this is a mock implementation of IScreenService
             // that locks screen orientation changes

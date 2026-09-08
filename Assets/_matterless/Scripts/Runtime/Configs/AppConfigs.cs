@@ -45,6 +45,7 @@ namespace Matterless.Floorcraft
         [SerializeField] private NameComponentService.Settings m_NameTagSettings;
         [SerializeField] private NPCEnemyService.Settings m_NPCEnemyServiceSettings;
         [SerializeField] private MayhemModeService.Settings m_MayhemModeSettings;
+        [SerializeField] private RecordingSettings m_RecordingSettings;
         
         [SerializeField] private WorldScaleService.Settings m_WorldScaleSettings;
         
@@ -63,6 +64,18 @@ namespace Matterless.Floorcraft
         public AnalyticsSettings analyticsSettings => m_AnalyticsSettings;
         public WalletSettings walletSettings => m_WalletSettings;
         public ChainSettings chainSettings => m_ChainSettings;
+
+        /// <summary>
+        /// Pushes the API keys from the gitignored AppSecrets asset into the settings that need them.
+        /// The receiving fields are not serialized, so nothing is written back to this asset.
+        /// </summary>
+        public void ApplySecrets(AppSecrets secrets)
+        {
+            m_AukiSettings.SetSecrets(secrets.aukiAppKey, secrets.aukiAppSecret, secrets.aukiDomainId, secrets.aukiEditorSessionId);
+            m_AnalyticsSettings.SetSecrets(secrets.amplitudeApiKey);
+            m_WalletSettings.SetSecrets(secrets.reownProjectId);
+            m_ChainSettings.SetSecrets(secrets.alchemyApiKey);
+        }
         public RaycastService.Settings raycastSettings => m_RaycastSettings;
         public ConnectionIndicatorService.Settings connectionIndicationSettings => m_ConnectionIndicationSettings;
         public NetworkService.Settings networkServiceSettings => m_NetworkServiceSettings;
@@ -92,6 +105,7 @@ namespace Matterless.Floorcraft
         public RendererService.Settings rendererSettings => m_RendererSettings;
         public NPCEnemyService.Settings npcEnemyServiceSettings => m_NPCEnemyServiceSettings;
         public MayhemModeService.Settings mayhemModeSettings => m_MayhemModeSettings;
+        public RecordingSettings recordingSettings => m_RecordingSettings;
         public WorldScaleService.Settings worldScaleSettings => m_WorldScaleSettings;
         public AudioClip backgroundMusic => m_BackgroundMusic;
         public AudioMixerGroup musicMixerGroup => m_MusicMixerGroup;

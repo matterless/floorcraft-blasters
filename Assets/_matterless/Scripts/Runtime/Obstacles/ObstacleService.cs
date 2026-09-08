@@ -25,6 +25,10 @@ namespace Matterless.Floorcraft
         
         public bool HasSpawnedObstacles => selectedPlaceable != null && counter.ContainsKey(selectedPlaceable) && counter[selectedPlaceable] > 0;
         public bool HasSpawnedMayhemObstacle => m_IsSpawnedMayhemObstacle;
+        /// <summary>
+        /// In Mayhem mode only the host may place the tower. In other modes always true.
+        /// </summary>
+        public bool IsMayhemTowerPlacementAllowed => !isInHayhemMode || m_AukiWrapper.isHost;
         public int RemainingObstacles => m_Settings.maxObstacles - counter[selectedPlaceable];
 
         private readonly Dictionary<uint, ObstacleView> m_ObstacleViews = new();
@@ -87,9 +91,28 @@ namespace Matterless.Floorcraft
             m_PropertiesEcsService.onComponentAdded += OnPropertiesComponentAdded;
             m_TransformService.onComponentAdded += OnTransformComponentAdded;
             m_AukiWrapper.onEntityDeleted += OnAukiEntityDeleted;
-            //m_CrownService.onCrownKeeperChanged += OnCrownKeeperChanged;
 
-            m_AukiWrapper.onLeft += OnResetObstaclesButtonClicked;
+            m_AukiWrapper.onLeft += ResetStateOnSessionLeft;
+        }
+
+        /// <summary>
+        /// Reset obstacle and Mayhem state when leaving the session (e.g. back to Intro).
+        /// Does not call DeleteEntity so it's safe when disconnecting.
+        /// </summary>
+        private void ResetStateOnSessionLeft()
+        {
+            m_IsSpawnedMayhemObstacle = false;
+            m_MayhemObstacleId = 0;
+            m_IsPreviewing = false;
+            foreach (var key in new List<Placeable>(counter.Keys))
+                counter[key] = 0;
+            m_ObstacleViews.Clear();
+            if (m_TowerPlacementArea != null)
+            {
+                UnityEngine.Object.Destroy(m_TowerPlacementArea.gameObject);
+                m_TowerPlacementArea = null;
+            }
+            onPlaceableChanged?.Invoke();
         }
 
 
@@ -253,6 +276,10 @@ namespace Matterless.Floorcraft
         {
             // this is obsolete, as we hide the button when obstacles have reached the max number
             if(counter[selectedPlaceable] >= m_Settings.maxObstacles)
+                return;
+            
+            // In Mayhem only the host may place the tower (defensive guard in case UI is bypassed).
+            if (isInHayhemMode && selectedPlaceable.assetId == AssetId.MayhemPillar && !m_AukiWrapper.isHost)
                 return;
             
             m_AudioUiService.PlaySelectSound();

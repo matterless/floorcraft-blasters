@@ -135,15 +135,15 @@ namespace Matterless.Floorcraft
                 
                 if (string.IsNullOrEmpty(uri))
                 {
-                    Debug.LogWarning($"Empty URI for token {tokenId}");
                     return string.Empty;
                 }
                 
-                // Handle IPFS URIs with {id} placeholder
+                // Handle ERC-1155 URIs with {id} placeholder
                 if (uri.Contains("{id}"))
                 {
                     BigInteger tokenIdBigInt = BigInteger.Parse(tokenId);
-                    string hexTokenId = tokenIdBigInt.ToString("X").PadLeft(64, '0');
+                    // Use lowercase hex, strip leading zeros, pad to 64 chars
+                    string hexTokenId = tokenIdBigInt.ToString("x").TrimStart('0').PadLeft(64, '0');
                     uri = uri.Replace("{id}", hexTokenId);
                 }
                 
@@ -153,63 +153,191 @@ namespace Matterless.Floorcraft
                     uri = uri.Replace("ipfs://", "https://ipfs.io/ipfs/");
                 }
                 
-                // Try multiple IPFS gateways
+                // For non-IPFS URLs (regular HTTP), fetch metadata directly
+                if (!uri.Contains("/ipfs/"))
+                {
+                    return await FetchImageUrlFromMetadata(uri);
+                }
+                
+                // For IPFS URLs, try multiple gateways
+                string ipfsHash = uri.Substring(uri.IndexOf("/ipfs/") + 6);
+                
                 string[] ipfsGateways = new string[] 
                 {
+                    "https://ipfs.io/ipfs/",
                     "https://cloudflare-ipfs.com/ipfs/",
                     "https://dweb.link/ipfs/",
-                    "https://ipfs.io/ipfs/",
                     "https://gateway.pinata.cloud/ipfs/"
                 };
-                
-                string ipfsHash = uri.Contains("/ipfs/") ? uri.Substring(uri.IndexOf("/ipfs/") + 6) : uri;
                 
                 foreach (var gateway in ipfsGateways)
                 {
                     try
                     {
-                        string gatewayUrl = gateway + ipfsHash;
-                        using (var httpClient = new HttpClient())
+                        string imageUrl = await FetchImageUrlFromMetadata(gateway + ipfsHash);
+                        if (!string.IsNullOrEmpty(imageUrl))
                         {
-                            httpClient.Timeout = System.TimeSpan.FromSeconds(10);
-                            string metadataJson = await httpClient.GetStringAsync(gatewayUrl);
-                            
-                            if (!string.IsNullOrEmpty(metadataJson))
-                            {
-                                var metadata = JObject.Parse(metadataJson);
-                                string imageUrl = metadata["image"]?.ToString();
-                                
-                                // Handle IPFS URLs in image field
-                                if (imageUrl != null && imageUrl.StartsWith("ipfs://"))
-                                {
-                                    imageUrl = imageUrl.Replace("ipfs://", "https://ipfs.io/ipfs/");
-                                }
-                                
-                                return imageUrl;
-                            }
+                            return imageUrl;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning($"Gateway {gateway} failed: {ex.Message}");
-                        // Continue to next gateway
+                        Debug.LogWarning($"IPFS gateway {gateway} failed: {ex.Message}");
                     }
                 }
                 
-                Debug.LogWarning("All IPFS gateways failed, trying OpenSea fallback");
-                // Fallback: Try OpenSea CDN for token ID 1
-                if (tokenId == "1")
-                {
-                    string contractAddress = m_Contract.ContractAddress.ToLower();
-                    return $"https://i2.seadn.io/base/{contractAddress}/9d8a5d6cf63f705afe582c0a5b3d45/779d8a5d6cf63f705afe582c0a5b3d45.png?w=1000";
-                }
-                
+                Debug.LogWarning($"All gateways failed for token {tokenId}");
                 return string.Empty;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Error getting image URL for token {tokenId}: {ex.Message}");
                 return string.Empty;
+            }
+        }
+        
+        /// <summary>
+        /// Fetch the image URL from metadata JSON at the given URL
+        /// </summary>
+        private async Task<string> FetchImageUrlFromMetadata(string metadataUrl)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                httpClient.Timeout = TimeSpan.FromSeconds(10);
+                string metadataJson = await httpClient.GetStringAsync(metadataUrl);
+                
+                if (!string.IsNullOrEmpty(metadataJson))
+                {
+                    var metadata = JObject.Parse(metadataJson);
+                    string imageUrl = metadata["image"]?.ToString();
+                    
+                    if (imageUrl != null && imageUrl.StartsWith("ipfs://"))
+                    {
+                        imageUrl = imageUrl.Replace("ipfs://", "https://ipfs.io/ipfs/");
+                    }
+                    
+                    return imageUrl;
+                }
+            }
+            
+            return string.Empty;
+        }
+        
+        /// <summary>
+        /// Check if the NFT has video content instead of an image
+        /// </summary>
+        /// <param name="tokenId">Token ID</param>
+        /// <returns>True if the NFT content is a video</returns>
+        public async Task<bool> IsVideoNFT(string tokenId)
+        {
+            try
+            {
+                string imageUrl = await GetTokenImageUrl(tokenId);
+                
+                if (string.IsNullOrEmpty(imageUrl))
+                {
+                    // No image URL found - check if there's animation_url in metadata
+                    string uri = await GetTokenURI(tokenId);
+                    if (!string.IsNullOrEmpty(uri))
+                    {
+                        // Handle {id} placeholder for ERC-1155
+                        if (uri.Contains("{id}"))
+                        {
+                            BigInteger tokenIdBigInt = BigInteger.Parse(tokenId);
+                            string hexTokenId = tokenIdBigInt.ToString("x").TrimStart('0').PadLeft(64, '0');
+                            uri = uri.Replace("{id}", hexTokenId);
+                        }
+                        
+                        string metadataUrl = uri.StartsWith("ipfs://") 
+                            ? uri.Replace("ipfs://", "https://ipfs.io/ipfs/") 
+                            : uri;
+                        
+                        using (var httpClient = new HttpClient())
+                        {
+                            httpClient.Timeout = TimeSpan.FromSeconds(10);
+                            string metadataJson = await httpClient.GetStringAsync(metadataUrl);
+                            
+                            if (!string.IsNullOrEmpty(metadataJson))
+                            {
+                                var metadata = JObject.Parse(metadataJson);
+                                string animationUrl = metadata["animation_url"]?.ToString();
+                                if (!string.IsNullOrEmpty(animationUrl))
+                                {
+                                    return true; // Has animation_url, likely video
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                }
+                
+                // Check if the image URL points to a video file
+                string lowerUrl = imageUrl.ToLower();
+                return lowerUrl.EndsWith(".mp4") || 
+                       lowerUrl.EndsWith(".webm") || 
+                       lowerUrl.EndsWith(".mov") ||
+                       lowerUrl.EndsWith(".avi") ||
+                       lowerUrl.Contains("video");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NFTService] Error checking if video NFT for token {tokenId}: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Get NFT name from metadata
+        /// </summary>
+        /// <param name="tokenId">Token ID</param>
+        /// <returns>NFT name from metadata, or token ID if not found</returns>
+        public async Task<string> GetNFTName(string tokenId)
+        {
+            try
+            {
+                string uri = await GetTokenURI(tokenId);
+                
+                if (string.IsNullOrEmpty(uri))
+                {
+                    return $"NFT #{tokenId}";
+                }
+                
+                // Handle {id} placeholder for ERC-1155
+                if (uri.Contains("{id}"))
+                {
+                    BigInteger tokenIdBigInt = BigInteger.Parse(tokenId);
+                    string hexTokenId = tokenIdBigInt.ToString("x").TrimStart('0').PadLeft(64, '0');
+                    uri = uri.Replace("{id}", hexTokenId);
+                }
+                
+                // Convert IPFS protocol to HTTP gateway
+                string metadataUrl = uri.StartsWith("ipfs://") 
+                    ? uri.Replace("ipfs://", "https://ipfs.io/ipfs/") 
+                    : uri;
+                
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(10);
+                    string metadataJson = await httpClient.GetStringAsync(metadataUrl);
+                    
+                    if (!string.IsNullOrEmpty(metadataJson))
+                    {
+                        var metadata = JObject.Parse(metadataJson);
+                        string name = metadata["name"]?.ToString();
+                        
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            return name;
+                        }
+                    }
+                }
+                
+                return $"NFT #{tokenId}";
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NFTService] Error getting NFT name for token {tokenId}: {ex.Message}");
+                return $"NFT #{tokenId}";
             }
         }
         

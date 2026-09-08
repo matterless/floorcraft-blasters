@@ -94,6 +94,13 @@
       "dependencies": {},
       "hash": "971e3985c5908d59f418d0d90bd83e6015ae7292"
     },
+    "com.matterless.module.nativeshare": {
+      "version": "git@github.com:matterless/native-share-module.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "e17de2f578aeab1a26cce4d7c152cc962bfb5c11"
+    },
     "com.nethereum.unity": {
       "version": "5.0.0",
       "depth": 3,
@@ -259,12 +266,12 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.purchasing": {
-      "version": "4.11.0",
+      "version": "4.15.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
         "com.unity.ugui": "1.0.0",
-        "com.unity.services.core": "1.8.2",
+        "com.unity.services.core": "1.12.5",
         "com.unity.modules.androidjni": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0"

@@ -35,8 +35,6 @@ namespace Matterless.Floorcraft
             // Initialize Nethereum
             m_Web3 = new Web3(m_RpcUrl);
             m_Contract = m_Web3.Eth.GetContract(ERC721ABI.JSON, m_ContractAddress);
-            
-            Debug.Log($"[ERC721Contract] Initialized: {m_ContractAddress}");
         }
         
         /// <summary>
@@ -159,9 +157,10 @@ namespace Matterless.Floorcraft
         }
         
         /// <summary>
-        /// Get the total supply of tokens in the collection
+        /// Get the total supply of tokens in the collection.
+        /// Note: This requires ERC721Enumerable extension, not all contracts support it.
         /// </summary>
-        /// <returns>Total supply</returns>
+        /// <returns>Total supply, or -1 if not supported</returns>
         public async Task<BigInteger> TotalSupply()
         {
             try
@@ -170,10 +169,10 @@ namespace Matterless.Floorcraft
                 var supply = await function.CallAsync<BigInteger>();
                 return supply;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debug.LogError($"[ERC721Contract] TotalSupply failed: {ex.Message}");
-                throw;
+                // totalSupply is optional (ERC721Enumerable), return -1 if not supported
+                return -1;
             }
         }
     }

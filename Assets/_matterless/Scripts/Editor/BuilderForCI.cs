@@ -49,7 +49,10 @@ namespace Matterless.Floorcraft.Editor
             // Perform build
             BuildReport buildReport = BuildConfigurationEditor.Build(buildConfig, buildOptions, false);
 
-            if (Directory.Exists(buildReport.summary.outputPath))
+            string outputPath = buildReport.summary.outputPath;
+            bool isFolder = Directory.Exists(outputPath);   // Xcode project
+            bool isFile = File.Exists(outputPath);          // Android .aab / .apk
+            if (isFolder || isFile)
             {
                 // Move build to correct folder as expected by CI. (to change the Build function as little as possible)
                 string buildPathArgument = Environment.GetEnvironmentVariable("BUILD_PATH"); // Gets set by CI pipeline.
@@ -59,8 +62,11 @@ namespace Matterless.Floorcraft.Editor
                 {
                     string outputFolderPath = Path.Combine(buildPathArgument, buildFileArgument);
 
-                    Console.WriteLine("Moving build from '" + buildReport.summary.outputPath + "' to given BUILD_PATH " + buildPathArgument);
-                    Directory.Move(buildReport.summary.outputPath, outputFolderPath);
+                    Console.WriteLine("Moving build from '" + outputPath + "' to given BUILD_PATH " + buildPathArgument);
+                    if (isFolder)
+                        Directory.Move(outputPath, outputFolderPath);
+                    else
+                        File.Move(outputPath, outputFolderPath);
                 }
             }
 

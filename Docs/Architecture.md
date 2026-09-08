@@ -25,6 +25,7 @@ Settings and Unity objects are typically `BindInstance`-ed first, followed by se
 ### RootInstaller (Platform & Cross-Cutting)
 
 Binds platform/runtime facilities and cross-cutting services. Typical bindings:
+- API keys: loads the gitignored `AppSecrets` asset (generated from `.env`, see [Secrets.md](Secrets.md)) and applies it to `AppConfigs` before anything else is bound
 - Rendering setup, `ARSession` and `ARSessionOrigin`
 - Auki Posemesh integration (`IAukiWrapper`, `MannaService`)
 - Analytics, Audio, Remote Config, Localisation, REST, Input Dialogue

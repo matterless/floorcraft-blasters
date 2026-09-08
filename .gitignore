@@ -1,11 +1,3 @@
-### Paid plugins (local only)
-Assets/Plugins/AVProMovieCapture/
-Assets/Plugins/AVProMovieCapture.meta
-Assets/Plugins/EffectCore/
-Assets/Plugins/EffectCore.meta
-Assets/Plugins/RenderHeads/
-Assets/Plugins/RenderHeads.meta
-
 ### Unity generated
 /Library/
 /Temp/
@@ -59,3 +51,29 @@ sysinfo.txt
 ProjectSettings/RiderScriptEditorPersistedState.asset
 SyncToy_3e41fa37-528e-4206-bf94-30c4a0f38f49.dat
 autoconnectioncofig.json
+
+### Paid plugins (private repos, installed by tools/paid-assets.sh; see Docs/PaidAssets.md)
+/Assets/Plugins/RenderHeads/
+/Assets/Plugins/RenderHeads.meta
+/Assets/Plugins/EffectCore/
+/Assets/Plugins/EffectCore.meta
+/Assets/_matterless/Scripts/Runtime/csc.rsp
+/Assets/_matterless/Scripts/Runtime/csc.rsp.meta
+
+# Mono crash dumps
+mono_crash.*.json
+
+### Secrets (see Docs/Secrets.md)
+.env
+/Assets/_matterless/Resources/AppSecrets.asset
+/Assets/_matterless/Resources/AppSecrets.asset.meta
+
+# Android signing keys
+*.keystore
+*.jks
+
+# Android libraries copied in by the External Dependency Manager (re-resolved on every build)
+/Assets/Plugins/Android/*.aar
+/Assets/Plugins/Android/*.aar.meta
+/Assets/Plugins/Android/*.jar
+/Assets/Plugins/Android/*.jar.meta

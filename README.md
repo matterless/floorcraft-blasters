@@ -14,6 +14,14 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
   - Join Session - Multiplayer via QR code
   - Mayhem Mode - PvE with AI enemies
 
+## Paid Assets (optional)
+
+The official builds use two paid assets that are not included here: AVPro Movie
+Capture (video recording) and the EffectCore explosion pack (particle materials).
+The project compiles and runs without them; recording is disabled and the
+affected particles show missing materials. Licensed developers can install them
+with `tools/paid-assets.sh install`. See [Docs/PaidAssets.md](Docs/PaidAssets.md).
+
 ## Getting Started
 
 ### Prerequisites
@@ -21,7 +29,7 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
 - **Unity 2022.3.62f2** (or compatible 2022.3.x LTS version)
 - **Platform SDKs:**
   - iOS: Xcode 14+ and iOS 14+ device
-  - Android: Android SDK with API Level 24+ (Android 7.0+)
+  - Android: Android SDK with API Level 26+ (Android 8.0+)
 - **Git** for cloning the repository
 - **ARCore/ARKit compatible device** (AR features won't work in Unity Editor camera view)
 
@@ -46,35 +54,48 @@ A multiplayer augmented reality racing game built with Unity, featuring real-tim
    - Check that these packages are installed:
      - AR Foundation (4.2.9)
      - Auki ConjureKit
-     - Matterless modules (Audio, Localisation, Inject)
+     - Matterless modules (Audio, Localisation, Inject, Native Share)
 
 ### Initial Configuration
 
 Before running the project, you **must** configure the following:
 
-1. **Auki Posemesh SDK** (Required for multiplayer):
+1. **API keys** go into `.env`, never into the config assets (see [Docs/Secrets.md](Docs/Secrets.md)):
 
-   - Get your App Key and App Secret from [Auki Console](https://console.auki.network)
-   - Open `Assets/_matterless/Data/Blasters Configs`
-   - Fill in Auki settings:
-     - App Key
-     - App Secret
-     - App Domain ID (optional, for testing)
+   ```bash
+   cp .env.example .env
+   ```
 
-2. **Analytics** (Required):
+   - `AUKI_APP_KEY` and `AUKI_APP_SECRET` from [Auki Console](https://console.auki.network), required for multiplayer
+   - `AMPLITUDE_API_KEY` from [Amplitude](https://amplitude.com), required for analytics
+   - `REOWN_PROJECT_ID` and `ALCHEMY_API_KEY` for the optional wallet and NFT features (see the sections below)
 
-   - Get an Amplitude App Key from [Amplitude](https://amplitude.com)
-   - Open `Assets/_matterless/Data/Blasters Configs`
-   - In the Inspector, find "Analytics Settings"
-   - Replace the placeholder with your actual Amplitude API Key
+   The editor generates the gitignored `AppSecrets` asset from this file whenever scripts
+   reload and before every build. Without a `.env` the project still opens and runs, with
+   multiplayer, analytics, wallet, and NFT features disabled. The same file carries the
+   optional deployment identity (posemesh domain id, Android package name and keystore),
+   so the tracked config assets and Player Settings only hold placeholders.
 
-3. **Optional Integrations:**
+2. **Push guard** (recommended for contributors): install the pre-push hook that refuses
+   commits containing `.env`, API keys, or the paid assets:
+
+   ```bash
+   tools/paid-assets.sh hook
+   ```
+
+3. **Auki domain** (optional): set `AUKI_DOMAIN_ID` in `.env`; the config assets no longer hold it.
+
+4. **Optional Integrations:**
    - Reown WalletConnect (see Wallet Integration section below)
    - Alchemy/Base NFT (see NFT Integration section below)
    - Backtrace crash reporting
    - Joystick remote config
 
 ### Building and Running
+
+Before every build the editor regenerates the `AppSecrets` asset from `.env`, so the keys
+present in `.env` (or in environment variables with the same names, for CI) at build time
+are the ones that ship.
 
 #### Testing in Unity Editor
 
@@ -119,19 +140,27 @@ Before running the project, you **must** configure the following:
 2. **Player Settings:**
 
    - Set Package Name
-   - Minimum API Level: 24 (Android 7.0)
+   - Minimum API Level: 26 (Android 8.0), required by AVPro Movie Capture
 
 3. **Build and Run:**
    - Connect Android device via USB
    - Enable USB Debugging on device
    - Click "Build and Run"
 
+For a Google Play upload, select `Assets/_matterless/_BuildConfigs/BC_Floorcraft_Blasters_Android`
+and press **Build Android App Bundle** in its Inspector. The config sets version, version code
+and defines and writes the `.aab` to the `Builds` folder. The store package name and the
+release keystore come from `ANDROID_PACKAGE_NAME`, `ANDROID_KEYSTORE_PATH`,
+`ANDROID_KEYSTORE_ALIAS` and the two password variables in `.env`; they are applied for the
+build only, so the tracked Player Settings keep their neutral values.
+
 ### Project Structure
 
 ```
 Assets/
 ├── _matterless/
-│   ├── Data/                    # ScriptableObject configs (⚠️ Add your API keys here)
+│   ├── Data/                    # ScriptableObject configs (no API keys; those come from .env)
+│   ├── Resources/AppSecrets.asset  # Generated from .env, gitignored
 │   ├── Scenes/                  # Main game scene
 │   ├── Scripts/
 │   │   ├── Runtime/
@@ -150,18 +179,19 @@ Assets/
 
 - [ ] Unity version 2022.3.62f2 installed
 - [ ] Project opens without errors
-- [ ] Auki App Key and App Secret configured
-- [ ] Amplitude analytics key configured
+- [ ] `.env` created from `.env.example` with the Auki and Amplitude keys
+- [ ] Console shows `[Secrets] Assets/_matterless/Resources/AppSecrets.asset updated from .env`
 - [ ] AR-capable device available for testing
 - [ ] Build successfully deploys to device
 - [ ] AR camera activates on device launch
 
 ### Troubleshooting
 
-**"Missing interface binding" errors:**
+**"[AppSecrets] Resources/AppSecrets.asset is missing" error:**
 
-- Check that all API keys are filled in `Blasters Configs`
-- Restart Unity after configuration changes
+- Create `.env` from `.env.example` and fill in the keys
+- Run **Matterless > Secrets > Sync from .env** (or let scripts reload)
+- The project still runs without it, but keyed features stay disabled
 
 **AR camera shows black screen:**
 
@@ -170,7 +200,7 @@ Assets/
 
 **Multiplayer connection fails:**
 
-- Verify Auki App Key and App Secret are correct
+- Verify `AUKI_APP_KEY` and `AUKI_APP_SECRET` in `.env` are correct, then re-sync
 - Check device internet connection
 - Ensure you're on the correct build environment (staging/prod)
 
@@ -185,11 +215,11 @@ Assets/
 
 The `_matterless/Data` folder contains configurations, some of which you'll need to update with your own information.
 
-- `Blasters Configs` and `Floorcraft Configs` hold configurations for privacy policy, terms of services, Auki posemesh app key, secret and domain id
+- `Blasters Configs` and `Floorcraft Configs` hold configurations for privacy policy, terms of services, Auki posemesh domain id, wallet metadata, and NFT contracts. API keys are not in these assets; they come from `.env` (see [Docs/Secrets.md](Docs/Secrets.md))
 - `Backtrace Configuration` has the settings for [https://backtrace.io/](https://backtrace.io/).
 - `Blasters Environment Settings` contains API Key settings for [https://www.getjoystick.com/](https://www.getjoystick.com/).
 
-You will also need an [Amplitude](https://amplitude.com/) App key in `AnalyticsService.cs` (`m_Amplitude.init("YOUR_AMPLITUDE_ID");`) for tracking analytics.
+You will also need an [Amplitude](https://amplitude.com/) API key, set as `AMPLITUDE_API_KEY` in `.env`, for tracking analytics.
 
 ## Wallet Integration with Reown WalletConnect
 
@@ -201,13 +231,16 @@ This project uses [Reown (formerly WalletConnect)](https://reown.com/) for block
    - Create a free account or sign in
    - Create a new project and copy your Project ID
 
-2. **Configure in Unity:**
-   - Open Unity Editor
-   - Navigate to `Assets/_matterless/Data/`
-   - Select `Blasters Configs`
+2. **Add the Project ID to `.env`:**
+
+   ```
+   REOWN_PROJECT_ID=<your project id>
+   ```
+
+3. **Configure the app metadata in Unity:**
+   - Navigate to `Assets/_matterless/Data/` and select `Blasters Configs`
    - In the Inspector, find the "Wallet Settings" section
    - Replace the placeholder values with your actual information:
-     - **Project ID:** Your Reown Project ID from step 1
      - **Project Name:** Your application name
      - **Project Description:** Brief description of your app
      - **Project URL:** Your project website
@@ -224,25 +257,30 @@ This project includes NFT (Non-Fungible Token) integration using [Nethereum](htt
    - Create a new App and select "Base" as the network
    - Copy your API Key from the dashboard
 
-2. **Configure in Unity:**
+2. **Add the API Key to `.env`:**
 
-   - Open Unity Editor
-   - Navigate to `Assets/_matterless/Data/`
-   - Select `Blasters Configs`
+   ```
+   ALCHEMY_API_KEY=<your alchemy api key>
+   ```
+
+3. **Configure the contracts in Unity:**
+
+   - Navigate to `Assets/_matterless/Data/` and select `Blasters Configs`
    - In the Inspector, find the "Chain Settings" section
-   - Replace the placeholder values:
-     - **NFT Contract Address:** Your ERC-1155 contract address on Base blockchain (e.g., `0x1234...`)
+   - Set the values for your deployment:
+     - **NFT Contract Address:** Your ERC-1155 contract address on Base (the primary ownership check)
+     - **ERC-1155 Token ID:** The token id that grants access
+     - **ERC-721 Contract Address:** Optional secondary ERC-721 contract; leave the placeholder to disable
      - **RPC Endpoint:** Keep as `https://base-mainnet.g.alchemy.com/v2/`
-     - **API Key:** Your Alchemy API Key from step 1
 
-3. **Features:**
+4. **Features:**
 
    - Check ownership of specific token IDs (per-vehicle gating)
    - Retrieve token metadata URIs (supports `{id}` replacement and IPFS gateways)
    - Load NFT images from metadata for UI display
    - Read-only operations (no gas fees or transactions)
 
-4. **Usage in Code:**
+5. **Usage in Code:**
    ```csharp
    // NFTService is available through dependency injection
    bool owns = await nftService.OwnsToken(walletAddress, tokenId);
@@ -252,24 +290,25 @@ This project includes NFT (Non-Fungible Token) integration using [Nethereum](htt
 
 ## Important Security Note
 
-**Never commit your actual API keys to the repository.** The config files should remain with placeholder text in version control. Only fill in real values in your local development environment. This applies to:
+**Never commit API keys to the repository.** The Auki app key and secret, the
+Reown project ID, the Alchemy API key, and the Amplitude API key live only in
+the gitignored `.env` file and the asset generated from it (see
+[Docs/Secrets.md](Docs/Secrets.md)). The pre-push hook refuses commits that
+contain them. Backtrace and Joystick settings are still stored in their config
+assets, so keep those as placeholders in version control.
 
-- Auki posemesh App Key and Secret
-- Reown WalletConnect Project ID
-- Alchemy API Key (for NFT/blockchain access)
-- Backtrace API settings
-- Joystick API Key
-- Amplitude App Key
+## Dependencies Not Included
 
-## Removed Dependencies
-
-The original project had dependencies on two paid assets which were removed from the open-source version:
+Two paid assets are used by the official builds but are not part of this repository. The
+project works without them (see [Paid Assets](#paid-assets-optional) and
+[Docs/PaidAssets.md](Docs/PaidAssets.md)); if you own licenses you can drop them in:
 
 - [Effectcore Stylized Explosion Pack 1](https://assetstore.unity.com/packages/vfx/particles/stylized-explosion-pack-1-79037) for explosion effects.
 - [AVPro Movie Capture](https://assetstore.unity.com/packages/tools/video/avpro-movie-capture-mobile-edition-221852) for recording functionality.
 
-The project also has Unity package manager dependencies to the following repositories
+The project also has Unity package manager dependencies to the following public repositories:
 
 - [https://github.com/matterless/audio-module](https://github.com/matterless/audio-module)
 - [https://github.com/matterless/localisation-module](https://github.com/matterless/localisation-module)
 - [https://github.com/matterless/inject-module](https://github.com/matterless/inject-module)
+- [https://github.com/matterless/native-share-module](https://github.com/matterless/native-share-module)

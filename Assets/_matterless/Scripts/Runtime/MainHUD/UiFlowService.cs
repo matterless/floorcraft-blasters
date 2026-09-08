@@ -152,7 +152,9 @@ namespace Matterless.Floorcraft
             {
                 //qrCodeUiService.HideIngameButtons();
                 //obstaclesService.SetInSpawnScreen(true);
-                
+                // Grant one respawn so the player can respawn after death (same as when going back from Gameplay).
+                // Without this, 0 respawns would make the spawn button open the store instead of respawning.
+                m_RespawnService.AddOneRespawn();
                 m_StateMachine.SwitchState((int)State.Spawning);
             };
             m_SpeederHUDService = speederHUDService;
@@ -216,14 +218,15 @@ namespace Matterless.Floorcraft
         {
             if (state == ConnectionState.Connected)
             {
-                if(m_CurrentState == State.Gameplay && m_DomainService.IsUserInitiatedConnection){
+                // Joiner: we just connected to someone else's session. Show VehicleSelector so they can spawn (then Spawning with spawn button).
+                // Do this whenever we're in Gameplay when Connected, not only when IsUserInitiatedConnection (QR join often has that false).
+                if (m_CurrentState == State.Gameplay)
+                {
                     m_NotificationService.ShowMessage(NotificationType.OnJoinedRoom);
-                    // m_SpeederService.RemoveSpeeder();
                     m_StateMachine.SwitchState((int)State.VehicleSelector);
                     m_DomainService.SetUserInitiatedConnection(false);
                 }
-
-                if(m_CurrentState == State.Intro && m_DomainService.IsUserInitiatedConnection){
+                else if(m_CurrentState == State.Intro && m_DomainService.IsUserInitiatedConnection){
                     m_NotificationService.ShowMessage(NotificationType.OnJoinedRoom);
                     m_StateMachine.SwitchState((int)State.VehicleSelector);
                     m_RendererService.DisableDimm();
@@ -289,11 +292,9 @@ namespace Matterless.Floorcraft
             
             m_CurrentState = State.Spawning;
 
-            if (m_QrCodeOverlayOpen)
-            {
-                return;
-            }
-            
+            // Always show the spawning view when entering Spawning so the spawn button is available.
+            // If the QR overlay is open it will be on top; when closed, OnQrCodeOverlayClosed will refresh UI.
+            // Previously we returned early when QrCodeOverlayOpen was true, which left the client with no spawn UI.
             m_LeaderboardService.ShowLeaderBoard();
             m_SpawningService.Show(() => m_StateMachine.SwitchState((int)State.Gameplay));
             m_HeaderUiService.Show();
@@ -332,6 +333,10 @@ namespace Matterless.Floorcraft
             {
                 m_MayhemUiService.ShowButton();
             }
+            else if (m_MayhemModeService.isInHayhemMode)
+            {
+                m_MayhemUiService.HideButton();
+            }
             
             m_CurrentState = State.Gameplay;
         }
@@ -339,6 +344,7 @@ namespace Matterless.Floorcraft
         private void GameplayOnExit()
         {
             m_MayhemUiService.HideButton();
+            m_MayhemUiService.Hide();
             m_HeaderUiService.HideHorizontalView();
             m_LeaderboardService.SetOrientation(ScreenOrientation.Portrait);
             m_SidebarUiService.SetOrientation(ScreenOrientation.Portrait);

@@ -65,8 +65,9 @@ namespace Matterless.Floorcraft
 
         private void OnIAPInitialized()
         {
-            // Restoring purchases in the beginning
-            RestorePremiumOnInit();
+            // Do NOT call RestorePurchases here. On iOS, RestoreTransactions can trigger
+            // an unexpected Apple Sign In / App Store sign-in prompt. Only restore when
+            // the user explicitly taps "Restore" in the store UI (RestorePremium()).
         }
 
         private void PurchasePremium()
@@ -135,13 +136,6 @@ namespace Matterless.Floorcraft
                 OnBlasterPremiumProductRestoreFailed);
             m_AudioUiService.PlaySelectSound();
 
-        }
-        
-        private void RestorePremiumOnInit()
-        {
-            m_IAPService.RestorePurchases(
-                OnBlasterPremiumProductRestored,
-                OnBlasterPremiumProductRestoreFailed);
         }
         
         

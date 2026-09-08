@@ -204,5 +204,31 @@ namespace Matterless.Floorcraft
             
             m_InstantiatedContainers[index].SetImage(sprite);
         }
+        
+        /// <summary>
+        /// Display NFT name as text when image cannot be displayed (e.g., for video NFTs)
+        /// </summary>
+        public void SetNFTText(int index, string nftName)
+        {
+            if (string.IsNullOrEmpty(nftName))
+            {
+                Debug.LogError("Cannot set empty NFT name");
+                return;
+            }
+            
+            if (index < 0 || index >= m_InstantiatedContainers.Count)
+            {
+                Debug.LogError($"Invalid index {index}, container count: {m_InstantiatedContainers.Count}");
+                return;
+            }
+            
+            if (m_InstantiatedContainers[index] == null)
+            {
+                Debug.LogError($"Container at index {index} is null");
+                return;
+            }
+            
+            m_InstantiatedContainers[index].SetText(nftName);
+        }
     }
 }

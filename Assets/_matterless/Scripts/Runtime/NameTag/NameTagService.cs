@@ -31,19 +31,68 @@ namespace Matterless.Floorcraft
             m_Setting = setting;
             m_NameComponentService.onComponentAdded += OnNameComponentAdded;
             m_ScoreComponentService.onComponentDeleted += OnScoreComponentDelete;
+            m_ScoreComponentService.onComponentAdded += OnScoreComponentAdded;
             m_ScoreComponentService.onComponentUpdated += UpdateText;
             m_AukiWrapper.onLeft += Reset;
+            m_SpeederService.onSpeederViewAdded += OnSpeederViewAdded;
         }
         
+        private void OnScoreComponentAdded(ScoreComponentModel model)
+        {
+            // Try create name tag when score arrives (view/name may have arrived first for remote joiner).
+            CreateNameTagForEntity(model.entityId);
+        }
+
         private void OnNameComponentAdded(NameComponentModel model)
         {
+            // Speeder view may not exist yet for remote joiners (name can sync before transform). Create tag only when view exists; otherwise OnSpeederViewAdded will create it.
+            if (!m_SpeederService.speederViews.ContainsKey(model.entityId))
+            {
+                return;
+            }
+            CreateNameTagForEntity(model.entityId);
+        }
+
+        private void OnSpeederViewAdded(uint entityId)
+        {
+            // View appeared (e.g. remote joiner's vehicle). Create name tag if name component exists and we don't have a tag yet.
+            if (m_NameTags.ContainsKey(entityId))
+            {
+                return;
+            }
+            if (!m_NameComponentService.nameComponentModels.TryGetValue(entityId, out var nameModel))
+            {
+                return;
+            }
+            CreateNameTagForEntity(entityId);
+        }
+
+        private void CreateNameTagForEntity(uint entityId)
+        {
+            if (!m_SpeederService.speederViews.TryGetValue(entityId, out var speederTransform))
+            {
+                return;
+            }
+            if (!m_NameComponentService.nameComponentModels.TryGetValue(entityId, out var nameModel))
+            {
+                return;
+            }
+            if (!m_ScoreComponentService.scoreComponentModels.ContainsKey(entityId))
+            {
+                return; // UpdateText needs score; avoid creating until we have it
+            }
+            if (m_NameTags.ContainsKey(entityId))
+            {
+                return;
+            }
+            var model = nameModel;
             NameTagView go = GameObject.Instantiate(Resources.Load<NameTagView>(m_Setting.nameTagResourcePath),
-                m_SpeederService.speederViews[model.entityId].transform);
+                speederTransform.transform);
             go.SetName(m_Setting.nameTags[model.model.name]);
-            go.SetEntityId(model.entityId);
+            go.SetEntityId(entityId);
             go.SetFontSize(m_Setting.fontSize);
             go.transform.localPosition = m_Setting.nameTagOffset;
-            m_NameTags.Add(model.entityId, go);
+            m_NameTags.Add(entityId, go);
             UpdateText(null);
         }
         private void OnScoreComponentDelete(uint entityId, bool isMine)

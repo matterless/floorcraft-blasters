@@ -14,8 +14,11 @@ namespace Matterless.Floorcraft
         private readonly INotificationService m_NotificationService;
         private readonly WalletUiView m_View;
         
-        // NFT sprite cache - key is token ID, value is sprite
+        // NFT sprite cache - key is token ID, value is sprite (null for video NFTs)
         private readonly Dictionary<string, Sprite> m_NFTSpriteCache = new Dictionary<string, Sprite>();
+        
+        // NFT name cache - key is token ID, value is name (for video NFTs that can't display images)
+        private readonly Dictionary<string, string> m_NFTNameCache = new Dictionary<string, string>();
 
         public WalletUiService(WalletService walletService, AudioUiService audioUiService, IAnalyticsService analyticsService, INotificationService notificationService)
         {
@@ -37,13 +40,27 @@ namespace Matterless.Floorcraft
             m_WalletService.onWalletConnected += OnWalletConnected;
             m_WalletService.onWalletDisconnected += OnWalletDisconnected;
             m_WalletService.onModalStateChanged += OnModalStateChanged;
+            m_WalletService.onNFTsLoaded += OnNFTsLoaded;
 
             // Hide by default - will be shown by UiFlowService when in Intro state
             m_View.Hide();
 
-            // Set initial state (show connect button, hide open wallet button, hide wallet info)
-            m_View.SetConnectButtonVisibility(true);
-            m_View.SetOpenWalletButtonVisibility(false);
+            if (m_WalletService.hasCachedSession)
+            {
+                m_View.SetConnectButtonVisibility(false);
+                m_View.SetOpenWalletButtonVisibility(true);
+                m_View.SetWalletAddress(m_WalletService.cachedWalletAddress);
+                m_View.SetOpenWalletButtonInteractability(true);
+                
+                int nftCount = m_WalletService.GetOwnedNFTCount();
+                m_View.InitializeNFTContainers(nftCount);
+                LoadNFTImages();
+            }
+            else
+            {
+                m_View.SetConnectButtonVisibility(true);
+                m_View.SetOpenWalletButtonVisibility(false);
+            }
         }
 
         private void OnConnectWalletButtonClicked()
@@ -63,7 +80,7 @@ namespace Matterless.Floorcraft
             DisplayCachedNFTImages();
         }
 
-        private async void OnWalletConnected()
+        private void OnWalletConnected()
         {
             m_View.SetConnectButtonVisibility(false);
             m_View.SetOpenWalletButtonVisibility(true);
@@ -84,29 +101,34 @@ namespace Matterless.Floorcraft
             
             ShowBalance();
             
-            // Wait for NFT cache to initialize
-            await System.Threading.Tasks.Task.Delay(2000);
-            
+            // NFT containers will be created when onNFTsLoaded fires (after cache is initialized)
+        }
+        
+        /// <summary>
+        /// Called when NFT cache has finished initializing (ownership checks complete)
+        /// </summary>
+        private void OnNFTsLoaded()
+        {
             // Create NFT containers based on owned NFT count
             int nftCount = m_WalletService.GetOwnedNFTCount();
+            
+            
             m_View.InitializeNFTContainers(nftCount);
             
-            // Load NFT images
+            // Load NFT images/names for display
             LoadNFTImages();
         }
 
         private void OnWalletDisconnected()
         {
-            // Track wallet disconnection for user analytics
             m_AnalyticsService.ClearWalletAddress();
-
-            // Show wallet disconnected notification
             m_NotificationService.ShowMessage(NotificationType.WalletDisconnected);
 
-            // Clear NFT containers and cache
             m_View.ClearNFTContainers();
             m_NFTSpriteCache.Clear();
+            m_NFTNameCache.Clear();
 
+            m_View.HideWalletInfo();
             m_View.SetConnectButtonVisibility(true);
             m_View.SetOpenWalletButtonVisibility(false);
             m_View.SetConnectButtonInteractability(true);
@@ -128,47 +150,37 @@ namespace Matterless.Floorcraft
         {
             try
             {
-                var ownedTokenIds = m_WalletService.GetOwnedTokenIds();
-                int nftCount = ownedTokenIds.Count;
+                var erc1155TokenIds = m_WalletService.GetOwnedErc1155TokenIds();
+                var erc721TokenIds = m_WalletService.GetOwnedErc721TokenIds();
                 
-                if (nftCount == 0)
+                if (erc1155TokenIds.Count == 0 && erc721TokenIds.Count == 0)
                 {
                     return;
                 }
                 
-                var nftService = new NFTService(m_WalletService.chainSettings.nftContractAddress, m_WalletService.chainSettings.rpcUrl);
-                
-                for (int i = 0; i < ownedTokenIds.Count; i++)
+                // === Load ERC-1155 NFTs (Active/Primary) ===
+                if (erc1155TokenIds.Count > 0)
                 {
-                    try
+                    var nft1155Service = new NFTService(m_WalletService.chainSettings.nftContractAddress, m_WalletService.chainSettings.rpcUrl);
+                    
+                    foreach (var tokenId in erc1155TokenIds)
                     {
-                        string tokenId = ownedTokenIds[i];
-                        
-                        // Check if already cached
-                        if (m_NFTSpriteCache.ContainsKey(tokenId))
-                        {
-                            Debug.Log($"Token {tokenId} already cached, skipping download");
-                            continue;
-                        }
-                        
-                        Sprite sprite = await nftService.LoadNFTImage(tokenId);
-                        if (sprite != null)
-                        {
-                            // Store in cache
-                            m_NFTSpriteCache[tokenId] = sprite;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"Failed to load sprite for token {tokenId}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Failed to load NFT image for token {ownedTokenIds[i]}: {ex.Message}");
+                        await LoadSingleNFT(tokenId, nft1155Service);
                     }
                 }
                 
-                // Display cached images after download completes
+                // === Load ERC-721 NFTs (Secondary) ===
+                if (erc721TokenIds.Count > 0)
+                {
+                    var nft721Service = new NFT721Service(m_WalletService.chainSettings.nft721ContractAddress, m_WalletService.chainSettings.rpcUrl);
+                    
+                    foreach (var tokenId in erc721TokenIds)
+                    {
+                        await LoadSingleNFT(tokenId, nft721Service);
+                    }
+                }
+                
+                // Display cached images/names after all downloads complete
                 DisplayCachedNFTImages();
             }
             catch (Exception ex)
@@ -178,7 +190,78 @@ namespace Matterless.Floorcraft
         }
         
         /// <summary>
-        /// Display cached NFT images in containers
+        /// Load a single ERC-1155 NFT image directly. Falls back to text name only if image fails.
+        /// </summary>
+        private async Task LoadSingleNFT(string tokenId, NFTService nftService)
+        {
+            try
+            {
+                if (m_NFTSpriteCache.ContainsKey(tokenId) || m_NFTNameCache.ContainsKey(tokenId))
+                {
+                    return;
+                }
+                Sprite sprite = await nftService.LoadNFTImage(tokenId);
+                
+                if (sprite != null)
+                {
+                    m_NFTSpriteCache[tokenId] = sprite;
+                }
+                else
+                {
+                    string nftName = await nftService.GetNFTName(tokenId);
+                    m_NFTNameCache[tokenId] = nftName;
+                    Debug.LogWarning($"Failed to load image for ERC-1155 token {tokenId}, using name: {nftName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load ERC-1155 NFT data for token {tokenId}: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Load a single NFT using the ERC-721 service (handles video/image/text fallback)
+        /// </summary>
+        private async Task LoadSingleNFT(string tokenId, NFT721Service nftService)
+        {
+            try
+            {
+                if (m_NFTSpriteCache.ContainsKey(tokenId) || m_NFTNameCache.ContainsKey(tokenId))
+                {
+                    return;
+                }
+                
+                // Check if this is a video NFT
+                bool isVideo = await nftService.IsVideoNFT(tokenId);
+                
+                if (isVideo)
+                {
+                    string nftName = await nftService.GetNFTName(tokenId);
+                    m_NFTNameCache[tokenId] = nftName;
+                }
+                else
+                {
+                    Sprite sprite = await nftService.LoadNFTImage(tokenId);
+                    if (sprite != null)
+                    {
+                        m_NFTSpriteCache[tokenId] = sprite;
+                    }
+                    else
+                    {
+                        string nftName = await nftService.GetNFTName(tokenId);
+                        m_NFTNameCache[tokenId] = nftName;
+                        Debug.LogWarning($"Failed to load sprite for ERC-721 token {tokenId}, using name: {nftName}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load ERC-721 NFT data for token {tokenId}: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Display cached NFT images or names in containers
         /// </summary>
         private void DisplayCachedNFTImages()
         {
@@ -197,20 +280,25 @@ namespace Matterless.Floorcraft
                 {
                     string tokenId = ownedTokenIds[i];
                     
-                    // Check if sprite is cached
+                    // Check if sprite is cached (image NFT)
                     if (m_NFTSpriteCache.TryGetValue(tokenId, out Sprite sprite))
                     {
                         m_View.SetNFTImage(i, sprite);
                     }
+                    // Check if name is cached (video NFT or failed image load)
+                    else if (m_NFTNameCache.TryGetValue(tokenId, out string nftName))
+                    {
+                        m_View.SetNFTText(i, nftName);
+                    }
                     else
                     {
-                        Debug.LogWarning($"No cached sprite for token {tokenId}");
+                        Debug.LogWarning($"No cached data for token {tokenId}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error displaying cached NFT images: {ex.Message}");
+                Debug.LogError($"Error displaying cached NFT data: {ex.Message}");
             }
         }
 
@@ -233,14 +321,9 @@ namespace Matterless.Floorcraft
 
         private void OnDisconnectWalletButtonClicked()
         {
-            // Disconnect wallet and hide wallet info container
             m_AudioUiService.PlaySelectSound();
-            
-            // Disable open wallet button during disconnection process
-            m_View.SetOpenWalletButtonInteractability(false);
-            
-            m_WalletService.Disconnect();
             m_View.HideWalletInfo();
+            m_WalletService.Disconnect();
         }
 
         private void OnModalStateChanged(bool isOpen)

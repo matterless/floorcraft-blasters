@@ -37,6 +37,7 @@ namespace Matterless.Floorcraft
         private Action m_OnSpectatorMode;
         private bool m_CanSpawn;
         private bool m_LastCanSpawn;
+        private bool m_LastCanShowGroundMarker;
         private string m_DisconnectedLabel;
         private string m_YouAreDisconnectedMessage;
         private string m_ScanningLabel;
@@ -45,6 +46,8 @@ namespace Matterless.Floorcraft
         private bool m_ViewIsActive;
         private bool m_ShowResetObstaclesButton = false;
         private GameMode m_GameMode;
+        private float m_MayhemClientWaitingForTowerSince = -1f;
+        private const float MAYHEM_CLIENT_SPAWN_FALLBACK_DELAY = 2.5f;
 
         public SpawningService(
             IAukiWrapper aukiWrapper, 
@@ -143,6 +146,8 @@ namespace Matterless.Floorcraft
         public void Show(Action onSpawn)
         {
             m_ViewIsActive = true;
+            // Don't reset m_MayhemClientWaitingForTowerSince here: allow fallback timer to persist across
+            // enter/exit spawning so the joiner can spawn after 2.5s total even if they open/close the screen.
             // cache callback
             m_OnSpawn = () =>
             {
@@ -157,6 +162,7 @@ namespace Matterless.Floorcraft
             // init these for tick update
             m_CanSpawn = false;
             m_LastCanSpawn = false;
+            m_LastCanShowGroundMarker = false;
             // show marker
             m_MarkerTypeService.SetType(MarkerType.Tip);
             //m_ObstaclesUiService.ShowButton();
@@ -184,11 +190,12 @@ namespace Matterless.Floorcraft
 
         private void OnJoinedRoom(Session session)
         {
-            // This means that we have joined to a multiplayer session and there are other players as well and
-            // we don't choose game mode when we joined to a multiplayer session,
-            // thus we don't know if it is mayhem or not so we set it to multiplayer
-            // which is important for interactibility of speeder and obstacle spawning buttons
-            if (session.GetParticipantCount() > 1)
+            // When joining a session that already has other participants we normally switch to Multiplayer
+            // (FFA placeables) so we don't assume a mode we didn't choose. Do NOT overwrite if the user
+            // already chose Mayhem (e.g. both players chose Mayhem then one joined the other), so client
+            // stays in Mayhem and only host can place the tower.
+            int participantCount = session != null ? session.GetParticipants().Count : 0;
+            if (participantCount > 1 && m_GameMode != GameMode.Mayhem)
             {
                 SetGameMode(GameMode.Multiplayer);
             }
@@ -212,7 +219,8 @@ namespace Matterless.Floorcraft
             string remaniningString = m_LocalisationService.Translate(m_ObstacleService.selectedPlaceable.placeLocalisationTag);
             string buttonLabel = $"{remaniningString} ({remainingObstacles}/{m_ObstacleService.maxObstacles})";
             
-            bool isSpawnObstacleButtonInteractable = remainingObstacles > 0 && !m_ObstacleService.HasSpawnedMayhemObstacle;
+            // In Mayhem only host can place the tower; clients must wait for host to place and then can spawn vehicle.
+            bool isSpawnObstacleButtonInteractable = remainingObstacles > 0 && !m_ObstacleService.HasSpawnedMayhemObstacle && m_ObstacleService.IsMayhemTowerPlacementAllowed;
             bool isResetSpawnObstacleButtonInteractable = m_ObstacleService.HasSpawnedObstacles;
             m_View.SetObstacleButtonLabels(buttonLabel, isSpawnObstacleButtonInteractable, isResetSpawnObstacleButtonInteractable,  removeButtonLabel);
         }
@@ -260,34 +268,65 @@ namespace Matterless.Floorcraft
 
         public void Tick(float deltaTime, float unscaledDeltaTime)
         {
-            m_CanSpawn = m_RaycastService.hasHit && m_AukiWrapper.isConnected;  
-            
-            if (m_CanSpawn && m_GameMode == GameMode.Mayhem)
+            // Compute Mayhem "allowed to spawn" (tower or joiner fallback) independently of ground hit,
+            // so the fallback timer runs even when the joiner opens the screen without pointing at the floor.
+            bool mayhemAllowedToSpawn = true;
+            if (m_GameMode == GameMode.Mayhem)
             {
-                m_CanSpawn = m_ObstacleService.HasSpawnedObstacles;
+                mayhemAllowedToSpawn = m_ObstacleService.HasSpawnedMayhemObstacle;
+                if (!mayhemAllowedToSpawn && !m_AukiWrapper.isHost && m_AukiWrapper.isConnected)
+                {
+                    if (m_MayhemClientWaitingForTowerSince < 0f)
+                    {
+                        m_MayhemClientWaitingForTowerSince = Time.time;
+                    }
+                    if (Time.time - m_MayhemClientWaitingForTowerSince >= MAYHEM_CLIENT_SPAWN_FALLBACK_DELAY)
+                    {
+                        mayhemAllowedToSpawn = true;
+                    }
+                }
+                else if (m_ObstacleService.HasSpawnedMayhemObstacle)
+                    m_MayhemClientWaitingForTowerSince = -1f;
             }
+            else
+                m_MayhemClientWaitingForTowerSince = -1f;
 
-            if (m_ViewIsActive && m_CanSpawn && !m_LastCanSpawn)
+            m_CanSpawn = m_RaycastService.hasHit && m_AukiWrapper.isConnected
+                && (m_GameMode != GameMode.Mayhem || mayhemAllowedToSpawn);
+
+            // In Mayhem, show the ground marker (tip) as soon as we have a raycast hit so the host can see where to place the tower.
+            // Only host can place the tower, so only show the marker for host in Mayhem before tower is placed; after tower is placed everyone can see it (spawn button).
+            // In other modes, only show the marker when they can actually spawn (m_CanSpawn).
+            bool canShowGroundMarker = m_GameMode == GameMode.Mayhem
+                ? (m_RaycastService.hasHit && m_AukiWrapper.isConnected && (m_ObstacleService.HasSpawnedMayhemObstacle || m_AukiWrapper.isHost))
+                : m_CanSpawn;
+
+#if UNITY_EDITOR
+            // in editor we don't have to check for raycast
+            m_CanSpawn = m_AukiWrapper.isConnected;
+            if (m_GameMode == GameMode.Mayhem)
+                m_CanSpawn = m_ObstacleService.HasSpawnedMayhemObstacle;
+            canShowGroundMarker = m_GameMode == GameMode.Mayhem ? (m_AukiWrapper.isConnected && (m_ObstacleService.HasSpawnedMayhemObstacle || m_AukiWrapper.isHost)) : m_CanSpawn;
+#endif
+
+            if (m_ViewIsActive && canShowGroundMarker && !m_LastCanShowGroundMarker)
             {
                 if (m_MarkerService.isHidden)
                 {
                     m_MarkerService.Show();
                 }
             }
-            if (m_ViewIsActive && !m_CanSpawn && m_LastCanSpawn)
+            if (m_ViewIsActive && !canShowGroundMarker && m_LastCanShowGroundMarker)
             {
                 if (!m_MarkerService.isHidden)
                 {
                     m_MarkerService.Hide();
                 }
             }
-            
-#if UNITY_EDITOR
-            // in editor we don't have to check for raycast
-            m_CanSpawn = m_AukiWrapper.isConnected;
-#endif
+
             m_View.UpdateScanningStatus(m_CanSpawn, m_RaycastService.hasHit, m_AukiWrapper.isConnected, m_ScanningLabel, m_LookAroundMessage, m_DisconnectedLabel);
             m_LastCanSpawn = m_CanSpawn;
+            m_LastCanShowGroundMarker = canShowGroundMarker;
         }
     }
 }

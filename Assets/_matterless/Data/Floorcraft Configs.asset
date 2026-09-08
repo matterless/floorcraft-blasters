@@ -25,12 +25,9 @@ MonoBehaviour:
     m_HeartbeatFrequencyThresholdPercentage: 0.2
     m_OnlyMasterClient: 0
   m_AukiSettings:
-    m_AppKey: Auki posemesh App Key
-    m_AppSecret: Auki posemesh App Secret
     m_LogLevel: 3
     m_AutoJoinOnStart: 0
     m_UseGrund: 1
-    m_AppDomainId: Auki posemesh domain id
     m_MannaSettings:
       m_ScanningType: 10
       m_HighScanningFrequency: 0.1
@@ -43,7 +40,18 @@ MonoBehaviour:
     m_HumanSegmentationStencilMode: 2
     m_EnvironmentDepthMode: 0
     m_UseThisSessionIdInEditor: 0
-    m_SessionId: 
+  m_AnalyticsSettings:
+    m_EnableLogging: 1
+  m_WalletSettings:
+    m_ProjectName: 'Floorcraft: Blasters'
+    m_ProjectDescription: Description
+    m_ProjectUrl: YOUR_PROJECT_URL
+    m_ProjectIconUrl: YOUR_PROJECT_ICON_URL
+  m_ChainSettings:
+    m_NftContractAddress: Get your NFT Contract Address
+    m_Nft1155TokenId: 64306102522383898777692056113347394168783302164976809436283082385802875895808
+    m_Nft721ContractAddress: 0xe664b8B0BE6C4dAeA83C44b77Da6106313728F39
+    m_RpcEndpoint: https://base-mainnet.g.alchemy.com/v2/
   m_RaycastSettings:
     m_TrackableType: 2
   m_ConnectionIndicationSettings:
@@ -275,6 +283,12 @@ MonoBehaviour:
     m_SpawnIncreasePerWave: 0
     m_TargetMaxHealth: 0
     m_PlayAreaRadius: 0
+  m_RecordingSettings:
+    m_MaxDuration: 60
+    m_OutputFolder: Captures
+    m_PhotoSound: 
+    m_StartSound: 
+    m_StopSound: 
   m_WorldScaleSettings:
     m_WorldScale: 0.7
   m_BackgroundMusic: {fileID: 0}

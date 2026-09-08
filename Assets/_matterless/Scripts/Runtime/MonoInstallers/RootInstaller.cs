@@ -34,6 +34,9 @@ namespace Matterless.Floorcraft
 
         protected override void InstallBindings()
         {
+            // API keys live outside source control; see Docs/Secrets.md
+            m_AppConfigs.ApplySecrets(AppSecrets.Load());
+
             // app rendering setting init
             SetupRendering(m_AppConfigs.renderingSettings);
 

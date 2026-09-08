@@ -171,7 +171,7 @@ session.UpdateComponent(componentTypeId, entityId, updatedData);
 
 The wrapper uses `AukiSettings` for configuration:
 
-- `appKey` / `appSecret`: Auki API credentials
+- `appKey` / `appSecret`: Auki API credentials. Not serialized in the config asset; filled at bootstrap from the gitignored `AppSecrets` asset generated from `.env` (see [Secrets.md](Secrets.md))
 - `logLevel`: Logging verbosity
 - `autoJoinOnStart`: Whether to auto-join on startup
 - `useThisSessionIdInEditor`: Use specific session ID in editor

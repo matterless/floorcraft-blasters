@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+#
+# Pre-push guard: refuse to push any commit that contains the paid assets,
+# the secrets files, or API keys inside the config assets, and refuse a tip
+# whose tracked settings carry deployment identity (store package names,
+# posemesh ids, keystore path). Installed by tools/paid-assets.sh; can also
+# be run by hand as:
+#   tools/githooks/pre-push --range <rev-list args>
+#
+set -u
+
+# Paths that must never appear in a pushed commit.
+FORBIDDEN_PATHS=(
+    "Assets/Plugins/RenderHeads"
+    "Assets/Plugins/RenderHeads.meta"
+    "Assets/Plugins/EffectCore"
+    "Assets/Plugins/EffectCore.meta"
+    "Assets/_matterless/Scripts/Runtime/csc.rsp"
+    ".env"
+    "Assets/_matterless/Resources/AppSecrets.asset"
+    "Assets/_matterless/Resources/AppSecrets.asset.meta"
+)
+# Config assets that used to carry API keys, and the fields that must never hold a value.
+# A real key is a single token without spaces; placeholder texts contain spaces or start with YOUR_.
+CONFIG_ASSETS=(
+    "Assets/_matterless/Data/Blasters Configs.asset"
+    "Assets/_matterless/Data/Floorcraft Configs.asset"
+)
+SECRET_FIELDS='^ *m_(AppKey|AppSecret|AmplitudeApiKey|ProjectId|ApiKey): *[^ ]+ *$'
+PLACEHOLDERS='^ *m_[A-Za-z]+: *YOUR_'
+
+# Deployment identity that belongs in .env, checked on the tree being pushed (see Docs/Secrets.md).
+IDENTITY_FILES=(
+    "ProjectSettings/ProjectSettings.asset"
+    "ProjectSettings/AndroidResolverDependencies.xml"
+    "Assets/_matterless/_BuildConfigs"
+    "Assets/_matterless/Data"
+    "Assets/_matterless/Scripts/ECSTest"
+)
+IDENTITY_PATTERNS=(
+    'com\.auki\.'                                        # store package name of the published app
+    '^ *m_(AppDomainId|SessionId): *[0-9a-f]{8}-[0-9a-f]{4}-'  # posemesh domain / session id
+    '^ *AndroidKeystoreName: *[^ ]'                      # local keystore path
+)
+
+ZERO=0000000000000000000000000000000000000000
+failed=0
+
+show_first() {  # print at most $1 lines of stdin, indented
+    local n="$1" i=0 line
+    while IFS= read -r line; do
+        i=$((i + 1))
+        if [ "$i" -le "$n" ]; then printf '   %s\n' "$line" >&2; fi
+    done
+    if [ "$i" -gt "$n" ]; then printf '   ... and %d more\n' $((i - n)) >&2; fi
+}
+
+scan() {
+    # $1 = tip commit, remaining args = rev-list range arguments
+    local tip="$1"; shift
+    local hits c leaks="" pattern
+
+    hits="$(git ls-tree -r --name-only "$tip" -- "${FORBIDDEN_PATHS[@]}" 2>/dev/null)"
+    if [ -n "$hits" ]; then
+        echo "REFUSED: commit ${tip:0:10} still contains paid assets or secrets files:" >&2
+        printf '%s\n' "$hits" | show_first 5
+        failed=1
+    fi
+
+    hits="$(git log --format='%h %s' "$@" -- "${FORBIDDEN_PATHS[@]}" 2>/dev/null)"
+    if [ -n "$hits" ]; then
+        echo "REFUSED: these commits touch paid assets or secrets files:" >&2
+        printf '%s\n' "$hits" | show_first 10
+        failed=1
+    fi
+
+    # API key values inside the config assets, in any commit of the range
+    for c in $(git rev-list "$@" 2>/dev/null); do
+        if git grep -h -E "$SECRET_FIELDS" "$c" -- "${CONFIG_ASSETS[@]}" 2>/dev/null | grep -qvE "$PLACEHOLDERS"; then
+            leaks="$leaks$(git log -1 --format='%h %s' "$c")"$'\n'
+        fi
+    done
+    if [ -n "$leaks" ]; then
+        echo "REFUSED: these commits carry API keys inside the config assets:" >&2
+        printf '%s' "$leaks" | show_first 10
+        failed=1
+    fi
+
+    # Deployment identity in the tree being pushed (history is not scanned for these)
+    for pattern in "${IDENTITY_PATTERNS[@]}"; do
+        hits="$(git grep -n -E "$pattern" "$tip" -- "${IDENTITY_FILES[@]}" 2>/dev/null | sed "s/^$tip://")"
+        if [ -n "$hits" ]; then
+            echo "REFUSED: commit ${tip:0:10} carries deployment identity that belongs in .env:" >&2
+            printf '%s\n' "$hits" | show_first 5
+            failed=1
+        fi
+    done
+}
+
+if [ "${1:-}" = "--range" ]; then
+    shift
+    tip="$(git rev-parse "${1:-HEAD}")" || exit 1
+    scan "$tip" "$@"
+else
+    # git passes: <local ref> <local sha> <remote ref> <remote sha> per line on stdin
+    while read -r local_ref local_sha remote_ref remote_sha; do
+        [ "$local_sha" = "$ZERO" ] && continue
+        if [ "$remote_sha" = "$ZERO" ]; then
+            scan "$local_sha" "$local_sha" --not --remotes
+        else
+            scan "$local_sha" "$remote_sha..$local_sha"
+        fi
+    done
+fi
+
+if [ "$failed" -ne 0 ]; then
+    echo "Paid assets, secrets and deployment identity must never be pushed. See Docs/PaidAssets.md and Docs/Secrets.md." >&2
+    exit 1
+fi
+exit 0

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using System.Threading.Tasks;
 using Nethereum.Web3;
@@ -68,6 +69,18 @@ namespace Matterless.Floorcraft
         }
         
         /// <summary>
+        /// Convert BigInteger to a 64-character hex string (32 bytes, zero-padded).
+        /// Handles BigInteger.ToString("X") adding a leading zero for positive values
+        /// whose high nibble has the sign bit set (e.g., 0x8...).
+        /// </summary>
+        private string ToHex256(BigInteger value)
+        {
+            string hex = value.ToString("X").TrimStart('0');
+            if (string.IsNullOrEmpty(hex)) hex = "0";
+            return hex.PadLeft(64, '0');
+        }
+        
+        /// <summary>
         /// Get the balance of a specific token for an address
         /// </summary>
         /// <param name="account">Wallet address</param>
@@ -111,7 +124,7 @@ namespace Matterless.Floorcraft
                     string paddedAccount = account.Substring(2).PadLeft(64, '0');
                     
                     // Pad tokenId to 32 bytes (64 hex characters)
-                    string paddedTokenId = tokenId.ToString("X").PadLeft(64, '0');
+                    string paddedTokenId = ToHex256(tokenId);
                     
                     string data = functionSelector + paddedAccount + paddedTokenId;
                     
@@ -137,7 +150,7 @@ namespace Matterless.Floorcraft
                     
                     if (rpcResponse.error != null)
                     {
-                        Debug.LogError($"RPC Error: {rpcResponse.error}");
+                        Debug.LogError($"RPC Error: {rpcResponse.error.code} - {rpcResponse.error.message}");
                         return 0;
                     }
                     
@@ -147,8 +160,15 @@ namespace Matterless.Floorcraft
                         return 0;
                     }
                     
-                    // Convert hex to BigInteger
-                    var balance = new BigInteger(System.Convert.ToInt64(balanceHex.Substring(2), 16));
+                    // Strip "0x" prefix and leading zeros, then parse as unsigned BigInteger
+                    string hex = balanceHex.Substring(2).TrimStart('0');
+                    if (string.IsNullOrEmpty(hex))
+                    {
+                        return 0;
+                    }
+                    
+                    // Prepend "0" to ensure positive (unsigned) interpretation by BigInteger
+                    var balance = BigInteger.Parse("0" + hex, NumberStyles.HexNumber);
                     return balance;
                 }
             }
@@ -200,7 +220,7 @@ namespace Matterless.Floorcraft
                     string functionSelector = "0x0e89341c";
                     
                     // Pad tokenId to 32 bytes (64 hex characters)
-                    string paddedTokenId = tokenId.ToString("X").PadLeft(64, '0');
+                    string paddedTokenId = ToHex256(tokenId);
                     
                     string data = functionSelector + paddedTokenId;
                     
