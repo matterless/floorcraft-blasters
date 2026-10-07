@@ -12,7 +12,7 @@ Shader "Unlit/SHC_RF_Outline"
         Tags 
         { 
             "RenderType" = "Opaque"
-            "RenderPipeline" = "UniversalRenderPipeline"
+            "RenderPipeline" = "UniversalPipeline"
         }
 
 

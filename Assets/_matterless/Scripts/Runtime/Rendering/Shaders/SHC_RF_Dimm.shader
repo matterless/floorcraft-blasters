@@ -11,7 +11,7 @@ Shader "Hidden/Matterless/DimmBackround"
         
         Tags 
         {
-            "RenderPipeline" = "UniversalRenderPipeline" 
+            "RenderPipeline" = "UniversalPipeline" 
             "RenderType"="Opaque" 
         }
         ZTest Always
