@@ -4,7 +4,7 @@
 #
 #   1. asks Play for the next free version code (or takes --build-number)
 #   2. builds BC_Floorcraft_Blasters_Android in Unity batchmode with that build number
-#   3. checks the bundle: release-signed with the .env keystore, symbols zip present
+#   3. checks the bundle: release-signed with the .env keystore, Java plugin classes present, symbols zip present
 #   4. uploads bundle and symbols with tools/play-upload.py and adds a release
 #
 #   tools/play-release.sh [--notes TEXT | --notes-file PATH] [--track internal] [--publish]
@@ -122,6 +122,14 @@ if [ -n "$KEYSTORE" ] && [ -n "$ALIAS" ] && [ -n "$STORE_PASS" ]; then
 else
     log "warning: keystore passwords not in .env, so the signer was only checked to not be the debug key"
 fi
+
+# The Android Resolver keeps the Java libraries in a gitignored folder, so a build without them still
+# succeeds; the app then crashes at startup when C# looks the plugin class up by name.
+for CLASS in com/amplitude/unity/plugins/AmplitudePlugin; do
+    FOUND="$(unzip -p "$AAB" 'base/dex/*.dex' | LC_ALL=C grep -a -c "L$CLASS;" || true)"
+    [ "${FOUND:-0}" -gt 0 ] || die "${AAB#$ROOT/} has no $CLASS; run Android Resolver > Force Resolve in Unity and build again"
+done
+log "Java plugin classes present"
 
 SYMBOLS="$(find "$ROOT/Builds" -maxdepth 1 -name "$(basename "$AAB" .aab)-*-v$BUILD_NUMBER-*.symbols.zip" | head -n 1)"
 [ -n "$SYMBOLS" ] || die "no native debug symbols zip for version code $BUILD_NUMBER next to the bundle"

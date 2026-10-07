@@ -7,8 +7,9 @@ in one command:
 2. builds `BC_Floorcraft_Blasters_Android` in Unity batchmode with that build number.
    The number is used for this build only: store version codes stay out of the tracked
    config and Player Settings
-3. checks that the bundle is signed with the `.env` release key and that the native
-   debug symbols zip was written
+3. checks that the bundle is signed with the `.env` release key, that it contains the
+   Java plugin classes (see [Android Java dependencies](#android-java-dependencies)) and
+   that the native debug symbols zip was written
 4. uploads the bundle and the symbols with `tools/play-upload.py` and adds a release to
    the internal testing track
 
@@ -50,6 +51,15 @@ Store builds write `<bundle>-<version>-v<code>-IL2CPP.symbols.zip` next to the `
 (debug-signed test builds do not). The uploader sends it with every release, so Play
 Console can symbolicate native crashes and ANRs. If you upload a bundle by hand, add the
 zip under App bundle explorer > the version > Downloads > Native debug symbols.
+
+## Android Java dependencies
+
+The Android Resolver (Assets > External Dependency Manager) downloads the Java libraries,
+such as Amplitude's, into `Assets/Plugins/Android`, which is gitignored. If they are
+deleted, a build still succeeds but the app crashes at startup with a
+`ClassNotFoundException`. `AndroidDependencyCheck` therefore runs before every Android
+build: when a required class is missing it forces a resolve, and it fails the build if
+the class is still missing. `tools/play-release.sh` checks the built bundle again.
 
 ## One-time setup: service account
 
