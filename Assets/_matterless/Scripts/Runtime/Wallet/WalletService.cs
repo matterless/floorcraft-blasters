@@ -167,7 +167,8 @@ namespace Matterless.Floorcraft
         private async Task HandleRestoredSession()
         {
             string walletAddress = AppKit.Account.Address;
-            Debug.Log($"[WalletService] Restored wallet session for {walletAddress}");
+            // the address stays out of the log: Backtrace attaches the last log lines to crash reports
+            Debug.Log("[WalletService] Restored wallet session");
             
             onWalletConnected?.Invoke();
             
@@ -623,7 +624,7 @@ namespace Matterless.Floorcraft
                 m_OwnedErc721TokenIds.AddRange(cacheData.ownedErc721TokenIds ?? new List<string>());
                 m_NFTCacheInitialized = true;
                 
-                Debug.Log($"[WalletService] NFT cache restored on startup for {m_CachedWalletAddress}");
+                Debug.Log("[WalletService] NFT cache restored on startup");
             }
             catch (Exception ex)
             {
