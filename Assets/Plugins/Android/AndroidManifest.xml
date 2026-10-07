@@ -9,7 +9,8 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Recordings capture the game's audio, not the microphone (RecordingService). Removed so no library merges it back in. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Recordings go to DCIM (RecordingService). Android 10 and below need this to write there; Android 11+ needs nothing, hence maxSdkVersion. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />

@@ -124,16 +124,7 @@ namespace Matterless.Floorcraft
             }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            // AVPro captures audio through its own native path rather than Unity's Microphone class,
-            // so the runtime permission must be requested explicitly (AVPro Movie Capture Android guide).
-            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
-            {
-                var callbacks = new PermissionCallbacks();
-                callbacks.PermissionGranted += _ => StartRecording();
-                callbacks.PermissionDenied += _ => Debug.LogWarning("[RecordingService] Microphone permission denied; recording cancelled.");
-                Permission.RequestUserPermission(Permission.Microphone, callbacks);
-                return;
-            }
+            // No microphone permission: recordings take the game's own audio (AudioCaptureSource.Unity), never the mic.
 
             // Writing into DCIM needs the storage permission on Android 10 and below (AVPro's own photo-library check
             // does the same; from Android 11 the media folders need none). If it is refused, fall back to the private
