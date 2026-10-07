@@ -60,6 +60,7 @@ namespace Matterless.Floorcraft
         
         // Cache current wallet address for analytics
         private string m_CurrentWalletAddress = string.Empty;
+        private bool m_Started;
 
         private const string SESSION_ID_PARAM = "Session Id";
         private const string DOMAIN_ID_PARAM = "Domain Id";
@@ -78,12 +79,28 @@ namespace Matterless.Floorcraft
         private const string DOMAIN_DURATION_PARAM = "Domain Duration";
         private const string TIMESTAMP_PARAM = "Timestamp";
 
-        public AnalyticsService(IUnityEventDispatcher unityEventDispatcher, AnalyticsSettings settings)
+        public AnalyticsService(IUnityEventDispatcher unityEventDispatcher, PrivacyConsent privacyConsent, AnalyticsSettings settings)
         {
             m_Amplitude = Amplitude.Instance;
-            m_Amplitude.logging = settings.enableLogging;
-            m_Amplitude.init(settings.amplitudeApiKey);
-            SendEvent(AnalyticsEvent.APP_LAUNCH);
+            // Amplitude starts only once the privacy policy is accepted; events before that are dropped.
+            privacyConsent.WhenGranted(() =>
+            {
+                m_Amplitude.logging = settings.enableLogging;
+                // No location: Amplitude would otherwise store the IP and derive city, region and country from it.
+                // Set before init so it applies from the first event.
+                m_Amplitude.setTrackingOptions(new Dictionary<string, bool>
+                {
+                    {"disableIPAddress", true},
+                    {"disableCity", true},
+                    {"disableRegion", true},
+                    {"disableDMA", true},
+                    {"disableCountry", true},
+                    {"disableLatLng", true},
+                });
+                m_Amplitude.init(settings.amplitudeApiKey);
+                m_Started = true;
+                SendEvent(AnalyticsEvent.APP_LAUNCH);
+            });
             m_DomainDictionary = new Dictionary<string, object>()
             {
                 {DOMAIN_ID_PARAM, string.Empty}
@@ -277,13 +294,16 @@ namespace Matterless.Floorcraft
             
             // Cache wallet address for use in events
             m_CurrentWalletAddress = walletAddress;
-            
-            // Set wallet address as Amplitude user ID for cross-session tracking
-            m_Amplitude.setUserId(walletAddress);
-            
-            // Also set as user property for analytics queries
-            m_Amplitude.setUserProperty("wallet_address", walletAddress);
-            m_Amplitude.setUserProperty("wallet_connected", true);
+
+            if (m_Started)
+            {
+                // Set wallet address as Amplitude user ID for cross-session tracking
+                m_Amplitude.setUserId(walletAddress);
+
+                // Also set as user property for analytics queries
+                m_Amplitude.setUserProperty("wallet_address", walletAddress);
+                m_Amplitude.setUserProperty("wallet_connected", true);
+            }
             
             // Track wallet connection event
             m_WalletDictionary[WALLET_ADDRESS_PARAM] = walletAddress;
@@ -295,9 +315,12 @@ namespace Matterless.Floorcraft
             // Clear cached wallet address
             m_CurrentWalletAddress = string.Empty;
             
-            // Revert to device ID tracking
-            m_Amplitude.setUserId(null);
-            m_Amplitude.setUserProperty("wallet_connected", false);
+            if (m_Started)
+            {
+                // Revert to device ID tracking
+                m_Amplitude.setUserId(null);
+                m_Amplitude.setUserProperty("wallet_connected", false);
+            }
             
             // Track wallet disconnection event
             SendEvent(AnalyticsEvent.AR_WALLET_DISCONNECTED);
@@ -325,8 +348,8 @@ namespace Matterless.Floorcraft
         
         private void SendEvent(AnalyticsEvent eventId, Dictionary<string, object> parameter = null)
         {
-            // don't send analytics from unity editor
-            if(Application.isEditor)
+            // don't send analytics from unity editor, or before the privacy policy is accepted
+            if(Application.isEditor || !m_Started)
                 return;
             
             m_Amplitude.logEvent(eventId.ToString(), parameter);

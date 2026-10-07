@@ -6,9 +6,6 @@ namespace Matterless.Floorcraft
 {
     public class PrivacyPolicyView : MonoBehaviour
     {
-        private const string TOS_LINK = "https://matterless.com/floorcraft-termsofservice";
-        private const string PP_LINK = "https://matterless.com/privacypolicy";
-
         public event Action onAcceptButtonClicked;
 
         #region Inspector

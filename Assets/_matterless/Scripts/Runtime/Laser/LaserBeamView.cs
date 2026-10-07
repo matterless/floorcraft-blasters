@@ -4,6 +4,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 //NOTE (Marko) : LaserBeamView is hacked to fix the issue with the WorldScale and avoid changing shader to account for the world scale
 //HACK: Treat laser as if its actually 3 meters long (Default laser length)
@@ -31,12 +32,13 @@ namespace Matterless.Floorcraft
 		
 		#endregion
 
-		#region DrawProcedural
+		#region Segments Mesh
 
-		private ComputeBuffer m_TrisIndexBuffer;
-		private ComputeBuffer m_VertexBuffer;
-		private ComputeBuffer m_NormalBuffer;
-		private ComputeBuffer m_UVBuffer;
+		// One mesh holding a copy of m_LaserMesh per segment; uv2.x is the copy's segment index.
+		// The shader reads plain vertex attributes because Mali GPUs on OpenGL ES cannot read
+		// compute buffers in a vertex shader, which the earlier DrawProcedural version needed.
+		private Mesh m_SegmentsMesh;
+		private int m_SegmentsMeshCapacity;
 
 		private int[] m_MeshTriangles;
 		private Vector3[] m_MeshVertices;
@@ -97,7 +99,8 @@ namespace Matterless.Floorcraft
 		private readonly int m_LaserDecayID = Shader.PropertyToID("_Decay");
 		private readonly int m_SegmentOffsetID = Shader.PropertyToID("_Offset");
 		private readonly int m_TrailColorID = Shader.PropertyToID("_TrailColor");
-		
+		private readonly int m_SegmentCountID = Shader.PropertyToID("_SegmentCount");
+
 		#region Debug
 	#if MARKO_DEBUG_BOUNDS
 		void DrawBounds(Bounds b, float delay=0)
@@ -174,35 +177,7 @@ namespace Matterless.Floorcraft
 			m_CapsuleCollider.Init(id);
 			m_Finished = finished;
 
-			#region Procedural Draw Init
-
-			/* NOTE (Marko): Init procedural mesh
-			 * We need to do this only once, so we do it here but we can do this on Init -> Depends on how we end up implementing this
-			 * Make sure to call this only once
-			 * Make sure it is disposed if we end up having this on monobehaviour
-			 */
-
-			m_TrisIndexBuffer = new ComputeBuffer(m_MeshTriangles.Length, sizeof(int));
-			m_TrisIndexBuffer.SetData(m_MeshTriangles);
-
-			m_VertexBuffer = new ComputeBuffer(m_MeshVertices.Length, sizeof(float) * 3);
-			m_VertexBuffer.SetData(m_MeshVertices);
-
-			m_NormalBuffer = new ComputeBuffer(m_MeshNormals.Length, sizeof(float) * 3);
-			m_NormalBuffer.SetData(m_MeshNormals);
-			
-			m_UVBuffer = new ComputeBuffer(m_MeshVertices.Length, sizeof(float) * 2);
-			m_UVBuffer.SetData(m_MeshUVs);
-
-			m_LaserMaterialInstance.SetBuffer("Indicies", m_TrisIndexBuffer);
-			m_LaserMaterialInstance.SetBuffer("Vertices", m_VertexBuffer);
-			m_LaserMaterialInstance.SetBuffer("Normals", m_NormalBuffer);
-			m_LaserMaterialInstance.SetBuffer("UVs", m_UVBuffer);
-
 			m_SingleSegmentSize = m_LaserMaxLength / m_Resolution; // Ideal Segment Size as if laser is at max length
-
-
-            #endregion
 
             this.gameObject.SetActive(true);
         }
@@ -213,28 +188,70 @@ namespace Matterless.Floorcraft
 			set => m_LaserHitDistance = value;
 		}
 
-		private void DisposeBuffers()
+		// Segments drawn by the full laser (inversely scaled by world scale, see the hack note above);
+		// fewer are drawn while it propagates
+		private int MaxDrawnSegments => (int)(m_MaxSegments * 1f/m_WorldScale);
+
+		/// <summary>Makes sure m_SegmentsMesh holds at least <paramref name="segments"/> copies of m_LaserMesh.</summary>
+		private void EnsureSegmentsMesh(int segments)
 		{
-			/*
-			 * NOTE (Marko): Dispose buffers when we are done with them
-			 * As explained above, we can keep buffers in memory but object holding these buffers shouldn't be destroyed before desposing them
-			 * Doing this here as an example, not as recommended way, someone with more knowledge should we do this
-			 */
-			m_TrisIndexBuffer.Dispose();
-			m_VertexBuffer.Dispose();
-			m_NormalBuffer.Dispose();
-			m_UVBuffer.Dispose();
+			if (m_SegmentsMesh != null && m_SegmentsMeshCapacity >= segments)
+				return;
+
+			int vertexCount = m_MeshVertices.Length;
+			int indexCount = m_MeshTriangles.Length;
+			var vertices = new Vector3[vertexCount * segments];
+			var normals = new Vector3[vertexCount * segments];
+			var uvs = new Vector2[vertexCount * segments];
+			var segmentIndices = new Vector2[vertexCount * segments];
+			var triangles = new int[indexCount * segments];
+
+			for (int segment = 0; segment < segments; segment++)
+			{
+				int vertexOffset = segment * vertexCount;
+				Array.Copy(m_MeshVertices, 0, vertices, vertexOffset, vertexCount);
+				Array.Copy(m_MeshNormals, 0, normals, vertexOffset, vertexCount);
+				Array.Copy(m_MeshUVs, 0, uvs, vertexOffset, vertexCount);
+
+				for (int i = 0; i < vertexCount; i++)
+					segmentIndices[vertexOffset + i] = new Vector2(segment, 0);
+
+				for (int i = 0; i < indexCount; i++)
+					triangles[segment * indexCount + i] = m_MeshTriangles[i] + vertexOffset;
+			}
+
+			if (m_SegmentsMesh == null)
+				m_SegmentsMesh = new Mesh { name = "LaserSegments" };
+			else
+				m_SegmentsMesh.Clear();
+
+			m_SegmentsMesh.indexFormat = vertices.Length > ushort.MaxValue ? IndexFormat.UInt32 : IndexFormat.UInt16;
+			m_SegmentsMesh.vertices = vertices;
+			m_SegmentsMesh.normals = normals;
+			m_SegmentsMesh.uv = uvs;
+			m_SegmentsMesh.uv2 = segmentIndices;
+			m_SegmentsMesh.SetTriangles(triangles, 0, false);
+			m_SegmentsMeshCapacity = segments;
+		}
+
+		/// <summary>Draws the first <paramref name="segments"/> laser segments this frame.</summary>
+		private void DrawSegments(int segments)
+		{
+			m_LaserMaterialInstance.SetFloat(m_SegmentCountID, segments);
+			// The shader places the vertices in world space itself, so the mesh is drawn untransformed.
+			// No shadows: they would come from the untransformed mesh.
+			Graphics.DrawMesh(m_SegmentsMesh, Matrix4x4.identity, m_LaserMaterialInstance, 0, null, 0, null,
+				ShadowCastingMode.Off, false);
+		}
+
+		private void OnDestroy()
+		{
+			if (m_SegmentsMesh != null)
+				Destroy(m_SegmentsMesh);
 		}
 
 		private void Update()
 		{
-			/* Note(Marko): Disregard this. It's used to set shader buffers every frame so I can work with shader while game is running
-			m_LaserMaterial.SetBuffer("Indicies", m_TrisIndexBuffer);
-			m_LaserMaterial.SetBuffer("Vertices",	m_VertexBuffer);
-			m_LaserMaterial.SetBuffer("Normals", m_NormalBuffer);
-			m_LaserMaterial.SetFloat("_Offset", m_SegmentOffset);
-			*/
-
 			if (m_IsFiring)
 			{
 				if (m_PropagationTimer < m_LaserPropagationDuration + m_HoldDuration)
@@ -271,8 +288,7 @@ namespace Matterless.Floorcraft
 					// NOTE(Marko): Part of the hack, inversly scale the number of segments by world scale
 					int numberOfSegments = (int)Mathf.Lerp(0, m_MaxSegments * 1f/m_WorldScale,
 						Mathf.Clamp01(propagationDistance / m_LaserHitDistance));
-					Graphics.DrawProcedural(m_LaserMaterialInstance, m_Bounds, MeshTopology.Triangles, m_TrisIndexBuffer.count,
-						numberOfSegments);
+					DrawSegments(numberOfSegments);
 
 
 					m_CapsuleCollider.capsuleCollider.center = new Vector3(0, 0, m_LaserLength / (m_OriginScale * 2f));
@@ -300,12 +316,7 @@ namespace Matterless.Floorcraft
 					m_CapsuleCollider.capsuleCollider.height = (1-t) * m_LaserLength / m_OriginScale;
 
 					// Draw the laser
-					Graphics.DrawProcedural(
-						m_LaserMaterialInstance, 
-						m_Bounds, 
-						MeshTopology.Triangles, 
-						m_TrisIndexBuffer.count, 
-						(int) (m_MaxSegments * 1f/m_WorldScale));
+					DrawSegments(MaxDrawnSegments);
 
 
 					m_DecayTimer += Time.deltaTime;
@@ -315,7 +326,6 @@ namespace Matterless.Floorcraft
 
 				m_IsDecaying = false;
 				m_DecayTimer = 0.0f;
-				DisposeBuffers();
 				m_Finished?.Invoke(this);
 			}
 		}
@@ -324,14 +334,15 @@ namespace Matterless.Floorcraft
 		{
 			m_IsFiring = true;
 
-			#region Procedural Draw for current shot
+			#region Segments for current shot
 
 			/*
 			 NOTE (Marko): We adjust the laser segment size here according to hit distance,
 			 so this should be done only when we know the hit distance and we want to call this only once when we start firing
 			*/
-			m_MaxSegments = Mathf.CeilToInt(m_LaserHitDistance / m_SingleSegmentSize); // Keep reference to this so we can use it in Update for DrawProcedural
+			m_MaxSegments = Mathf.CeilToInt(m_LaserHitDistance / m_SingleSegmentSize); // Keep reference to this so we can use it in Update for DrawSegments
 			m_SegmentOffset = m_LaserHitDistance / m_MaxSegments;
+			EnsureSegmentsMesh(MaxDrawnSegments);
 			m_LaserMaterialInstance.SetFloat(m_SegmentOffsetID, m_SegmentOffset);
 
 			s_TextureOffsetCounter++;
@@ -348,7 +359,9 @@ namespace Matterless.Floorcraft
 			m_Bounds = new Bounds(OriginPosition + OriginRotation * Vector3.forward * (m_LaserHitDistance * 0.5f), new Vector3(0.25f, 0.25f,0.25f)); 
 			m_Bounds.Encapsulate(OriginPosition);
 			m_Bounds.Encapsulate(OriginPosition + OriginRotation * Vector3.forward * m_LaserHitDistance);
-			
+			// drawn with an identity matrix, so the mesh bounds are the world bounds
+			m_SegmentsMesh.bounds = m_Bounds;
+
 		#if MARKO_DEBUG_BOUNDS
 			DrawBounds(m_Bounds, 5.0f);
 		#endif

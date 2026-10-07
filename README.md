@@ -154,6 +154,14 @@ release keystore come from `ANDROID_PACKAGE_NAME`, `ANDROID_KEYSTORE_PATH`,
 `ANDROID_KEYSTORE_ALIAS` and the two password variables in `.env`; they are applied for the
 build only, so the tracked Player Settings keep their neutral values.
 
+`tools/play-release.sh` does the whole release from the command line: it takes the next
+version code from Play, builds the bundle in batchmode, checks the signature and uploads the
+bundle with its native debug symbols to internal testing. See
+[Docs/PlayRelease.md](Docs/PlayRelease.md) for the one-time service account setup.
+
+For a test build to hand out directly, use `BC_Floorcraft_Blasters_Android_Test` instead: it
+writes a debug-signed `.apk` that installs on any device without the keystore passwords.
+
 ### Project Structure
 
 ```

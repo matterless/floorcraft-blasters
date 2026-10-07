@@ -37,6 +37,7 @@ namespace Matterless.Floorcraft
         private readonly SettingMenuView m_View;
         private readonly AudioUiService m_AudioUiService;
         private readonly Settings m_Settings;
+        private readonly PrivacyPolicyService.Settings m_PrivacyPolicySettings;
 
         private Language m_CurrentLanguage;
         private readonly SettingsModel m_PreData;
@@ -47,9 +48,11 @@ namespace Matterless.Floorcraft
             IPlayerPrefsService playerPrefsService,
             ILocalisationService localisationService,
             AudioUiService audioUiService,
+            PrivacyPolicyService.Settings privacyPolicySettings,
             Settings setting)
         {
             m_Settings = setting;
+            m_PrivacyPolicySettings = privacyPolicySettings;
             m_PlayerPrefsService = playerPrefsService;
             m_LocalisationService = localisationService;
             m_AudioUiService = audioUiService;
@@ -73,7 +76,7 @@ namespace Matterless.Floorcraft
             m_View.OnMusicVolumeChangeEvent += OnMusicVolumeChange;
             m_View.OnSFXVolumeChangeEvent += OnSFXVolumeChange;
             m_View.OnSaveChangeClickEvent += OnSaveChangeClick;
-            m_View.OnLogoutClickEvent += OnLogoutClick;
+            m_View.OnPrivacyPolicyClickEvent += OnPrivacyPolicyClick;
             m_View.OnCancelEvent += OnCancelClick;
             m_View.OnLanguageClickEvent += language => m_AudioUiService.PlaySelectSound();
 
@@ -193,8 +196,11 @@ namespace Matterless.Floorcraft
             m_View.Hide();
         }
 
-        private void OnLogoutClick()
+        // Play requires the privacy policy to stay reachable in the app after the first-launch consent
+        private void OnPrivacyPolicyClick()
         {
+            m_AudioUiService.PlaySelectSound();
+            Application.OpenURL(m_PrivacyPolicySettings.PP_Link);
         }
 
         private void OnCancelClick()

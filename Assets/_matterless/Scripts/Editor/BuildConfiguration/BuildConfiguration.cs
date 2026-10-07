@@ -17,6 +17,8 @@ namespace Matterless.Floorcraft.Editor
         [SerializeField] private Platform m_Platform = Platform.iOS;
         [Tooltip("Android only: build a Google Play app bundle (.aab) instead of an .apk")]
         [SerializeField] private bool m_AndroidAppBundle = true;
+        [Tooltip("Android only: sign with the debug keystore instead of the release keystore from .env. For test builds handed out directly; Google Play rejects them")]
+        [SerializeField] private bool m_AndroidDebugSigning = false;
         [Header("App Settings")]
         [SerializeField] private string m_AppName;
         [SerializeField] private string m_AppVersion;
@@ -32,6 +34,7 @@ namespace Matterless.Floorcraft.Editor
 
         public Platform platform => m_Platform;
         public bool androidAppBundle => m_AndroidAppBundle;
+        public bool androidDebugSigning => m_AndroidDebugSigning;
         public string appName => m_AppName;
         public string appIdentifier => m_AppIdentifier;
         public string appVersion => m_AppVersion;
@@ -43,6 +46,7 @@ namespace Matterless.Floorcraft.Editor
         public string[] defines => m_Defines;
 
         public void IncreaseBuildNumber() => m_BuildNumber++;
+        public void SetBuildNumber(int buildNumber) => m_BuildNumber = buildNumber;
         
         
 #if UNITY_EDITOR

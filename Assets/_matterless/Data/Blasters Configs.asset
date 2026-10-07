@@ -41,7 +41,7 @@ MonoBehaviour:
     m_EnvironmentDepthMode: 0
     m_UseThisSessionIdInEditor: 0
   m_AnalyticsSettings:
-    m_EnableLogging: 1
+    m_EnableLogging: 0
   m_WalletSettings:
     m_ProjectName: 'Floorcraft: Blasters'
     m_ProjectDescription: 'Floorcraft: Blasters - A multiplayer AR combat racing

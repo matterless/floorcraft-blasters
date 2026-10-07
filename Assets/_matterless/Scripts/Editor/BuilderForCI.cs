@@ -41,15 +41,44 @@ namespace Matterless.Floorcraft.Editor
                 return;
             }
 
+            // tools/play-release.sh passes the next free Play version code. It applies to this build
+            // only: store version codes are Auki-internal and must not land in the tracked config.
+            int? trackedBuildNumber = null;
+            if (customParameters.TryGetValue("buildNumber", out string buildNumberArgument))
+            {
+                if (!int.TryParse(buildNumberArgument, out int buildNumber) || buildNumber <= 0)
+                {
+                    Console.WriteLine("Failed to build for CI: -buildNumber must be a positive integer, got '" + buildNumberArgument + "'.");
+                    ExitWithResult(BuildResult.Failed);
+                    return;
+                }
+
+                trackedBuildNumber = buildConfig.buildNumber;
+                buildConfig.SetBuildNumber(buildNumber);
+                Console.WriteLine("Building " + buildConfigName + " with build number " + buildNumber + ".");
+            }
+
             // We could also support BuildOptions.Development but that's probably
             // not needed by CI since we won't debug and attach breakpoints etc there.
             // Dev builds will still use the define MATTERLESS_DEVELOP etc.
             BuildOptions buildOptions = BuildOptions.None;
 
             // Perform build
-            BuildReport buildReport = BuildConfigurationEditor.Build(buildConfig, buildOptions, false);
+            BuildReport buildReport;
+            try
+            {
+                buildReport = BuildConfigurationEditor.Build(buildConfig, buildOptions, false);
+            }
+            finally
+            {
+                // never marked dirty, so the tracked asset keeps its own number
+                if (trackedBuildNumber.HasValue)
+                    buildConfig.SetBuildNumber(trackedBuildNumber.Value);
+            }
 
             string outputPath = buildReport.summary.outputPath;
+            // Read by tools/play-release.sh; Gradle may leave an unchanged bundle's timestamp as it was.
+            Console.WriteLine("Build output: " + outputPath);
             bool isFolder = Directory.Exists(outputPath);   // Xcode project
             bool isFile = File.Exists(outputPath);          // Android .aab / .apk
             if (isFolder || isFile)

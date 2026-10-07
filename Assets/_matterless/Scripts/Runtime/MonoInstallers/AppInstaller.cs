@@ -32,6 +32,7 @@ namespace Matterless.Floorcraft
             container.BindInstance(appConfig.shadowCloneSettings);
             container.BindInstance(appConfig.powerUpSpawnPointSettings);
             container.BindInstance(appConfig.menuSettings);
+            container.BindInstance(appConfig.privacyPolicySettings);
             container.BindInstance(appConfig.leaderboardSettings);
             container.BindInstance(appConfig.nameTagSettings);
             container.BindInstance(appConfig.npcEnemyServiceSettings);

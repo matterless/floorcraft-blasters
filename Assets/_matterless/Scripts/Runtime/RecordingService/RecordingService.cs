@@ -33,6 +33,18 @@ namespace Matterless.Floorcraft
         private float m_RecordStartTime;
         private GameObject m_ServiceGameObject;
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // Android: write into the public DCIM/<outputFolder> folder and let AVPro register the file with the media
+        // gallery, so recordings show up in the Gallery and in other apps' pickers. The app-private persistent data
+        // path has been hidden from other apps since Android 11, and WhatsApp's import of a recording handed over by
+        // share intent from there came out as black video (QA, 2026-09-14); the same file sent from the gallery was fine.
+        private const CaptureBase.OutputPath k_DefaultOutputPath = CaptureBase.OutputPath.RelativeToVideos;
+        private const string k_WriteExternalStorage = "android.permission.WRITE_EXTERNAL_STORAGE";
+#else
+        // iOS keeps the persistent data path: its share sheet offers "Save Video" itself.
+        private const CaptureBase.OutputPath k_DefaultOutputPath = CaptureBase.OutputPath.RelativeToPersistentData;
+#endif
+
         // IRecordingService implementation
         public bool IsRecording { get; private set; }
         public Action OnRecordingStarted { get; set; }
@@ -112,19 +124,42 @@ namespace Matterless.Floorcraft
             }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            // AVPro captures audio through its own native path rather than Unity's Microphone class,
-            // so the runtime permission must be requested explicitly (AVPro Movie Capture Android guide).
-            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            // No microphone permission: recordings take the game's own audio (AudioCaptureSource.Unity), never the mic.
+
+            // Writing into DCIM needs the storage permission on Android 10 and below (AVPro's own photo-library check
+            // does the same; from Android 11 the media folders need none). If it is refused, fall back to the private
+            // folder so recording keeps working; the file then just does not appear in the Gallery.
+            if (m_CaptureFromCamera.OutputFolder == CaptureBase.OutputPath.RelativeToVideos
+                && NeedsStoragePermission()
+                && !Permission.HasUserAuthorizedPermission(k_WriteExternalStorage))
             {
                 var callbacks = new PermissionCallbacks();
-                callbacks.PermissionGranted += _ => BeginRecording();
-                callbacks.PermissionDenied += _ => Debug.LogWarning("[RecordingService] Microphone permission denied; recording cancelled.");
-                Permission.RequestUserPermission(Permission.Microphone, callbacks);
+                callbacks.PermissionGranted += _ => StartRecording();
+                callbacks.PermissionDenied += _ => RecordToPrivateStorage();
+                callbacks.PermissionDeniedAndDontAskAgain += _ => RecordToPrivateStorage();
+                Permission.RequestUserPermission(k_WriteExternalStorage, callbacks);
                 return;
             }
 #endif
             BeginRecording();
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private static bool NeedsStoragePermission()
+        {
+            using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
+            {
+                return version.GetStatic<int>("SDK_INT") <= 29;
+            }
+        }
+
+        private void RecordToPrivateStorage()
+        {
+            Debug.LogWarning("[RecordingService] Storage permission denied; recording to the app's private folder instead of the gallery.");
+            m_CaptureFromCamera.OutputFolder = CaptureBase.OutputPath.RelativeToPersistentData;
+            BeginRecording();
+        }
+#endif
 
         private void BeginRecording()
         {
@@ -132,27 +167,42 @@ namespace Matterless.Floorcraft
             {
                 return;
             }
-            StartCapture();
-            m_AnalyticsService.StartRecording();
+            if (StartCapture())
+            {
+                m_AnalyticsService.StartRecording();
+            }
         }
 
         public void StopRecording()
         {
-            if (m_CaptureFromCamera == null)
+            if (!IsRecording)
             {
                 return;
             }
 
-            if (m_CaptureFromCamera.IsCapturing())
+            // AVPro can stop on its own (its SecondsElapsed stop mode, low disk space, native errors),
+            // so only stop the capture if it is still running, but always leave the recording state.
+            // Gating on IsCapturing() alone left the stop button stuck whenever the two disagreed.
+            if (m_CaptureFromCamera != null && m_CaptureFromCamera.IsCapturing())
             {
-                PlayStopCaptureSound();
-                m_CaptureFromCamera.StopCapture();
-                IsRecording = false;
-                m_AnalyticsService.FinishRecording(Timer);
-                UnsubscribeTimer();
-                m_View?.Hide();
-                OnRecordingStopped?.Invoke();
+                try
+                {
+                    m_CaptureFromCamera.StopCapture();
+                }
+                catch (Exception e)
+                {
+                    // AVPro already flagged itself as not capturing; don't let its file handling
+                    // failure keep our side (and the sidebar button) in the recording state.
+                    Debug.LogException(e);
+                }
             }
+
+            PlayStopCaptureSound();
+            IsRecording = false;
+            m_AnalyticsService.FinishRecording(Timer);
+            UnsubscribeTimer();
+            m_View?.Hide();
+            OnRecordingStopped?.Invoke();
         }
 
         private float Timer => Time.timeSinceLevelLoad - m_RecordStartTime;
@@ -184,10 +234,10 @@ namespace Matterless.Floorcraft
             m_CaptureFromCamera.StopMode = StopMode.SecondsElapsed;
             m_CaptureFromCamera.StopAfterSecondsElapsed = m_Settings.maxDuration;
             m_CaptureFromCamera.OutputTarget = OutputTarget.VideoFile;
-            m_CaptureFromCamera.OutputFolder = CaptureBase.OutputPath.RelativeToPeristentData;
+            m_CaptureFromCamera.OutputFolder = k_DefaultOutputPath;
             m_CaptureFromCamera.OutputFolderPath = m_Settings.outputFolder;
             m_CaptureFromCamera.FilenamePrefix = "MatterlessCapture";
-            m_CaptureFromCamera.AppendFilenameTimestamp = true;
+            m_CaptureFromCamera.FileNameComponents = CaptureBase.FilenameComponents.Date | CaptureBase.FilenameComponents.Time;
             m_CaptureFromCamera.ResolutionDownScale = CaptureBase.DownScale.Original;
             m_CaptureFromCamera.FrameRate = 30f;
             m_CaptureFromCamera.TimelapseScale = 1;
@@ -243,15 +293,23 @@ namespace Matterless.Floorcraft
             RenderPipelineManager.endCameraRendering -= OnPostRenderCallback;
         }
 
-        private void StartCapture()
+        private bool StartCapture()
         {
+            // StartCapture also returns false when AVPro queues the start for its next Update
+            // (component not started yet), which still ends up recording.
+            if (!m_CaptureFromCamera.StartCapture() && !m_CaptureFromCamera.IsStartCaptureQueued())
+            {
+                Debug.LogWarning("[RecordingService] AVPro failed to start the capture; recording cancelled.");
+                return false;
+            }
+
             PlayStartCaptureSound();
             m_RecordStartTime = Time.timeSinceLevelLoad;
-            m_CaptureFromCamera.StartCapture();
             IsRecording = true;
             m_View?.Show();
             SubscribeTimer();
             OnRecordingStarted?.Invoke();
+            return true;
         }
 
         private void SubscribeTimer()
@@ -280,6 +338,15 @@ namespace Matterless.Floorcraft
             if (timePassed >= maxTime && IsRecording)
             {
                 StopRecording();
+                return;
+            }
+
+            // AVPro dropped the capture without us asking (native error, disk space, its own stop mode):
+            // wind down our side too instead of leaving the sidebar stuck in the recording state.
+            if (IsRecording && !m_CaptureFromCamera.IsCapturing() && !m_CaptureFromCamera.IsStartCaptureQueued())
+            {
+                Debug.LogWarning($"[RecordingService] AVPro stopped capturing on its own after {timePassed:0.0}s; finishing recording.");
+                StopRecording();
             }
         }
 
@@ -307,6 +374,8 @@ namespace Matterless.Floorcraft
             }
         }
 
+        // Clears the app-private capture folder (screenshots, and recordings on platforms that still write there).
+        // Gallery recordings on Android live in DCIM and are the user's own files, so they are never touched.
         private void RemoveRecords()
         {
             var outputPath = Path.Combine(Application.persistentDataPath, m_Settings.outputFolder);

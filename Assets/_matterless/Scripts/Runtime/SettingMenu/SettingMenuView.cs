@@ -19,7 +19,7 @@ namespace Matterless.Floorcraft
         [SerializeField] private Slider m_SfxSlider;
         [SerializeField] private Button m_SaveChangeBtn;
         [SerializeField] private Button m_CancelBtn;
-        [SerializeField] private Button m_LogoutBtn;
+        [SerializeField] private Button m_PrivacyPolicyBtn;
 
         [SerializeField] private LanguageSelectorItemUi m_LanguageSelectorTemplate;
         [SerializeField] private Transform m_LanguageItemContainer;
@@ -34,7 +34,7 @@ namespace Matterless.Floorcraft
         public Action OnLanguageBtnClickEvent;
         public Action<Language> OnLanguagePanelSaveChangeClickEvent;
         public Action OnLanguagePanelCancelEvent;
-        public Action OnLogoutClickEvent;
+        public Action OnPrivacyPolicyClickEvent;
         private Dictionary<Language, LanguageSelectorItemUi> m_LanguageSelectorItemUis = new Dictionary<Language, LanguageSelectorItemUi>();
 
 
@@ -68,7 +68,7 @@ namespace Matterless.Floorcraft
             m_MusicSlider.onValueChanged.AddListener(OnMusicVolumeChange);
             m_SfxSlider.onValueChanged.AddListener(OnSFXVolumeChange);
             m_SaveChangeBtn.onClick.AddListener(OnSaveChangeClick);
-            m_LogoutBtn.onClick.AddListener(OnLogoutClick);
+            m_PrivacyPolicyBtn.onClick.AddListener(OnPrivacyPolicyClick);
             m_CancelBtn.onClick.AddListener(OnCancelClick);
             
             m_LanguageBtn.onClick.AddListener(OnLanguageBtnClick);
@@ -153,9 +153,9 @@ namespace Matterless.Floorcraft
             OnSaveChangeClickEvent?.Invoke();
         }
 
-        private void OnLogoutClick()
+        private void OnPrivacyPolicyClick()
         {
-            OnLogoutClickEvent?.Invoke();
+            OnPrivacyPolicyClickEvent?.Invoke();
         }
 
         private void OnCancelClick()

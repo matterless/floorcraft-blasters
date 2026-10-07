@@ -57,6 +57,7 @@ namespace Matterless.Floorcraft
             container.Bind<IMannaService, MannaService>();
 
             container.Bind<IPoolingService, PoolingService>();
+            container.Bind<PrivacyConsent>();
             container.Bind<BacktraceService>();
             container.Bind<IRemoteConfigService, RemoteConfigService>(m_EnvironmentSettings.remoteConfigSettings);
             container.Bind<IAnalyticsService, AnalyticsService>(m_AppConfigs.analyticsSettings);

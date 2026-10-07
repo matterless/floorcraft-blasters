@@ -36,10 +36,40 @@ namespace Matterless.Floorcraft.Editor
             if (GUILayout.Button($"Build {what} (Dev Build)"))
                 Build(config, BuildOptions.Development);
 
+            GUILayout.Space(6);
+
+            string releasePath = OutputPath(config, BuildOptions.None);
+            string devPath = OutputPath(config, BuildOptions.Development);
+            string existing = Exists(releasePath) ? releasePath : Exists(devPath) ? devPath : null;
+            EditorGUILayout.HelpBox(existing != null
+                ? $"Last build: {existing}"
+                : $"No build yet. Output: {releasePath}", MessageType.None);
+            if (GUILayout.Button(existing != null ? "Reveal Build in Finder" : "Open Builds Folder"))
+                EditorUtility.RevealInFinder(existing ?? BuildsFolder());
+
             GUILayout.Space(10);
 
             base.OnInspectorGUI();
         }
+
+        private static string BuildsFolder() =>
+            Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Builds");
+
+        /// <summary>Where a build of this config ends up: an Xcode project folder for iOS, a single file for Android.</summary>
+        private static string OutputPath(BuildConfiguration config, BuildOptions buildOptions)
+        {
+            string path = Path.Combine(BuildsFolder(), config.appBuildFolder);
+
+            if (buildOptions == BuildOptions.Development)
+                path += "_dev";
+
+            if (TargetOf(config) == BuildTarget.Android)
+                path += config.androidExtension;
+
+            return path;
+        }
+
+        private static bool Exists(string path) => File.Exists(path) || Directory.Exists(path);
 
         private static string BuildLabel(BuildConfiguration config)
         {
@@ -86,24 +116,18 @@ namespace Matterless.Floorcraft.Editor
         {
             BuildReport buildReport = null;
 
+            // Taken before SetAppEditorSettings writes the config's version code, so an Android
+            // build can put the tracked Player Settings back afterwards.
+            var neutral = AndroidIdentity.Capture();
             SetAppEditorSettings(config);
 
             var target = TargetOf(config);
             string what = BuildLabel(config);
 
-            string path = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Builds");
+            if (!Directory.Exists(BuildsFolder()))
+                Directory.CreateDirectory(BuildsFolder());
 
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-
-            path = Path.Combine(path, config.appBuildFolder);
-
-            if (buildOptions == BuildOptions.Development)
-                path += "_dev";
-
-            // iOS produces an Xcode project folder; Android produces a single file
-            if (target == BuildTarget.Android)
-                path += config.androidExtension;
+            string path = OutputPath(config, buildOptions);
 
             if (!interactive || EditorUtility.DisplayDialog($"Build {what}", $"Build {what} at:\n\"{path}\" ?", "Build", "Nope!"))
             {
@@ -114,7 +138,6 @@ namespace Matterless.Floorcraft.Editor
                 {
                     // Apply the store identity for the duration of the build only, so the tracked
                     // Player Settings keep their neutral values afterwards.
-                    var neutral = AndroidIdentity.Capture();
                     try
                     {
                         PrepareAndroid(config);
@@ -138,6 +161,8 @@ namespace Matterless.Floorcraft.Editor
             }
             else
             {
+                if (target == BuildTarget.Android)
+                    neutral.Restore();
                 Debug.Log("Build Canceled");
             }
 
@@ -145,12 +170,19 @@ namespace Matterless.Floorcraft.Editor
         }
 
         /// <summary>
-        /// Android specifics: app bundle toggle, package name and release signing from .env.
+        /// Android specifics: app bundle toggle, native symbols, package name and release signing from .env.
         /// Keystore passwords may also be typed into Player Settings for the editor session.
+        /// Configs with debug signing enabled skip the keystore entirely.
         /// </summary>
         private static void PrepareAndroid(BuildConfiguration config)
         {
             EditorUserBuildSettings.buildAppBundle = config.androidAppBundle;
+
+            // Store builds write a .symbols.zip next to the bundle; upload it with the release so
+            // Play can symbolicate native crashes and ANRs. Debug-signed test builds skip it.
+            EditorUserBuildSettings.androidCreateSymbols = config.androidDebugSigning
+                ? AndroidCreateSymbols.Disabled
+                : AndroidCreateSymbols.Public;
 
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
                 Debug.LogWarning("[Build] Active platform is not Android; Unity switches platform as part of this build, which takes a while.");
@@ -161,6 +193,13 @@ namespace Matterless.Floorcraft.Editor
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, packageName);
             Debug.Log($"[Build] Android package name: {packageName}" +
                       (SecretsSync.Get(env, EnvPackageName) != null ? $" (from {EnvPackageName})" : " (from the build config)"));
+
+            if (config.androidDebugSigning)
+            {
+                PlayerSettings.Android.useCustomKeystore = false;
+                Debug.Log("[Build] Android build is signed with the debug keystore (test build).");
+                return;
+            }
 
             string keystorePath = SecretsSync.Get(env, EnvKeystorePath);
             if (keystorePath != null)
@@ -194,21 +233,33 @@ namespace Matterless.Floorcraft.Editor
             private bool m_UseCustomKeystore;
             private string m_KeystoreName;
             private string m_KeyaliasName;
+            private int m_VersionCode;
 
+            /// <summary>Call before SetAppEditorSettings, which writes the config's version code.</summary>
             public static AndroidIdentity Capture() => new AndroidIdentity
             {
                 m_Identifier = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android),
                 m_UseCustomKeystore = PlayerSettings.Android.useCustomKeystore,
                 m_KeystoreName = PlayerSettings.Android.keystoreName,
                 m_KeyaliasName = PlayerSettings.Android.keyaliasName,
+                m_VersionCode = PlayerSettings.Android.bundleVersionCode,
             };
 
             public void Restore()
             {
-                PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, m_Identifier);
-                PlayerSettings.Android.useCustomKeystore = m_UseCustomKeystore;
-                PlayerSettings.Android.keystoreName = m_KeystoreName;
-                PlayerSettings.Android.keyaliasName = m_KeyaliasName;
+                // Only write back what the build changed; assigning an unchanged empty keystore
+                // name still dirties ProjectSettings.asset.
+                if (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android) != m_Identifier)
+                    PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, m_Identifier);
+                if (PlayerSettings.Android.useCustomKeystore != m_UseCustomKeystore)
+                    PlayerSettings.Android.useCustomKeystore = m_UseCustomKeystore;
+                if (PlayerSettings.Android.keystoreName != m_KeystoreName)
+                    PlayerSettings.Android.keystoreName = m_KeystoreName;
+                if (PlayerSettings.Android.keyaliasName != m_KeyaliasName)
+                    PlayerSettings.Android.keyaliasName = m_KeyaliasName;
+                // store version codes are Auki-internal; keep them out of ProjectSettings.asset
+                if (PlayerSettings.Android.bundleVersionCode != m_VersionCode)
+                    PlayerSettings.Android.bundleVersionCode = m_VersionCode;
                 AssetDatabase.SaveAssets();
             }
         }

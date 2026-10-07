@@ -41,6 +41,7 @@ namespace Matterless.Floorcraft
             IAukiWrapper aukiWrapper,
             INetworkService networkService,
             IInputDialogueService inputDialogueService,
+            PrivacyConsent privacyConsent,
             // arguments
             ObjectContext appContext,
             ObjectContext uiContext,
@@ -82,7 +83,12 @@ namespace Matterless.Floorcraft
                 audioUiService,
                 playerPrefsService,
                 localisationService,
-                onAcceptEvent: InstallAuki);
+                onAcceptEvent: () =>
+                {
+                    // analytics, crash reporting and Auki authentication start here
+                    privacyConsent.Grant();
+                    InstallAuki();
+                });
         }
 
         private void OnRemoteConfigCompleted()

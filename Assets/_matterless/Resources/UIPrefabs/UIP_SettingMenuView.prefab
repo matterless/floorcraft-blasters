@@ -752,7 +752,7 @@ GameObject:
   - component: {fileID: 5771791703176024364}
   - component: {fileID: 7090406788907487468}
   m_Layer: 5
-  m_Name: LogoutLabel
+  m_Name: PrivacyPolicyLabel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -806,7 +806,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: t::LOGOUT_LABEL
+  m_text: t::PRIVACY_POLICY_LABEL
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: b4354c918ebd71a469df27d9a604b29a, type: 2}
   m_sharedMaterial: {fileID: 6825863404142030079, guid: b4354c918ebd71a469df27d9a604b29a, type: 2}
@@ -815,8 +815,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281808869
-  m_fontColor: {r: 0.8980393, g: 0.21568629, b: 0.21568629, a: 1}
+    rgba: 4281469206
+  m_fontColor: {r: 0.08627451, g: 0.03529412, b: 0.19607843, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2304,12 +2304,12 @@ GameObject:
   - component: {fileID: 8545271014124815754}
   - component: {fileID: 6869434196587816646}
   m_Layer: 5
-  m_Name: Logout
+  m_Name: PrivacyPolicy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &543568078986860293
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3717,7 +3717,7 @@ MonoBehaviour:
   m_SfxSlider: {fileID: 7498827451855165328}
   m_SaveChangeBtn: {fileID: 4442827683650008969}
   m_CancelBtn: {fileID: 4442827682876949982}
-  m_LogoutBtn: {fileID: 6869434196587816646}
+  m_PrivacyPolicyBtn: {fileID: 6869434196587816646}
   m_LanguageSelectorTemplate: {fileID: 8458030830902326967}
   m_LanguageItemContainer: {fileID: 6935765505548019880}
 --- !u!1 &6611856350637166849

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Backtrace.Unity;
 using Backtrace.Unity.Model;
 using UnityEngine;
@@ -8,17 +10,26 @@ namespace Matterless.Floorcraft
     public class BacktraceService : IDisposable
     {
         private const string BACKTRACE_CLIENT_RESOURCES_PATH = "BacktraceClient";
+        // EVM addresses: 0x followed by 40 hex digits
+        private static readonly Regex WALLET_ADDRESS_PATTERN = new Regex(@"0x[0-9a-fA-F]{40}", RegexOptions.Compiled);
+        private const string WALLET_ADDRESS_MASK = "0x<address>";
 
-        private readonly BacktraceClient m_BacktraceClient;
+        private BacktraceClient m_BacktraceClient;
         private bool m_ErrorOccured = false;
-        
+
         // constructor
-        public BacktraceService()
+        public BacktraceService(PrivacyConsent privacyConsent)
         {
             // Skip all reports in unity editor
-            if (Application.isEditor) 
+            if (Application.isEditor)
                 return;
-            
+
+            // crash reports carry a device identifier, so start only once the privacy policy is accepted
+            privacyConsent.WhenGranted(StartClient);
+        }
+
+        private void StartClient()
+        {
             // instantiate backtrace client from resources
             m_BacktraceClient =
                 GameObject.Instantiate(Resources.Load<BacktraceClient>(BACKTRACE_CLIENT_RESOURCES_PATH));
@@ -52,8 +63,24 @@ namespace Matterless.Floorcraft
         // manipulate data before send
         private BacktraceData BeforeSend(BacktraceData data)
         {
-            //TODO: set custom attributes; unset attributes
+            // Wallet addresses must not reach crash reports. The game no longer logs them, but SDKs
+            // (Reown AppKit) may, and Backtrace attaches the last log lines as the report's source code.
+            if (data.SourceCode != null)
+                data.SourceCode.Text = ScrubWalletAddresses(data.SourceCode.Text);
+
+            if (data.Attributes != null)
+            {
+                var attributes = data.Attributes.Attributes;
+                foreach (var key in new List<string>(attributes.Keys))
+                    attributes[key] = ScrubWalletAddresses(attributes[key]);
+            }
+
             return data;
+        }
+
+        private static string ScrubWalletAddresses(string text)
+        {
+            return string.IsNullOrEmpty(text) ? text : WALLET_ADDRESS_PATTERN.Replace(text, WALLET_ADDRESS_MASK);
         }
         
         public void Dispose()

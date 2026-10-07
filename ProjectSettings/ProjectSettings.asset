@@ -88,7 +88,7 @@ PlayerSettings:
   audioSpatialExperience: 0
   deferSystemGesturesMode: 0
   hideHomeButton: 1
-  submitAnalytics: 1
+  submitAnalytics: 0
   usePlayerLog: 1
   dedicatedServerOptimizations: 0
   bakeCollisionMeshes: 0
@@ -970,7 +970,7 @@ PlayerSettings:
     Build: 0
     Collab: 0
     Game Performance: 0
-    Legacy Analytics: 1
+    Legacy Analytics: 0
     Purchasing: 1
     UDP: 0
     UNet: 1

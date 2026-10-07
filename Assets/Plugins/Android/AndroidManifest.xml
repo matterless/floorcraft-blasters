@@ -9,14 +9,20 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Recordings capture the game's audio, not the microphone (RecordingService). Removed so no library merges it back in. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Recordings go to DCIM (RecordingService). Android 10 and below need this to write there; Android 11+ needs nothing, hence maxSdkVersion. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <!-- Declared so the manifest merger does not imply it from WRITE_EXTERNAL_STORAGE without a maxSdkVersion. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
     
     <!-- AR Features -->
     <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     
-    <application>
+    <!-- requestLegacyExternalStorage: lets Android 10 write the recording into DCIM by file path; ignored from Android 11. -->
+    <application android:requestLegacyExternalStorage="true">
 
         <!-- Unity -->
         <activity

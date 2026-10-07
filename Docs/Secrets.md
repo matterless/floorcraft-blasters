@@ -34,6 +34,14 @@ never by the runtime:
 | `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_ALIAS` | Release keystore; without them the build is debug-signed, which Google Play rejects |
 | `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_PASS` | Keystore passwords; optional, Unity also accepts them typed into Publishing Settings per editor session |
 
+### Google Play uploads
+
+Read only by `tools/play-release.sh` and `tools/play-upload.py`, never by Unity:
+
+| Variable | Used by |
+|---|---|
+| `PLAY_SERVICE_ACCOUNT_JSON` | Path to the service account key that uploads releases; see [PlayRelease.md](PlayRelease.md) |
+
 ## Setup
 
 ```bash

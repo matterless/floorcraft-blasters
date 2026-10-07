@@ -30,15 +30,17 @@ namespace Matterless.Floorcraft
         private readonly string m_AppKey;
         private readonly string m_AppSecret;
         private readonly RestController m_RestController;
-        
+        private readonly PrivacyConsent m_PrivacyConsent;
+
         private string m_CurrentToken;
         private DateTime m_TokenFetchTime;
         private bool m_IsFetchingToken;
         
         public bool IsTokenValid => !string.IsNullOrEmpty(m_CurrentToken) && !IsTokenExpired();
 
-        public DdsAuthenticationService(AukiSettings aukiSettings)
+        public DdsAuthenticationService(PrivacyConsent privacyConsent, AukiSettings aukiSettings)
         {
+            m_PrivacyConsent = privacyConsent;
             m_AppKey = aukiSettings.appKey;
             m_AppSecret = aukiSettings.appSecret;
             
@@ -49,8 +51,8 @@ namespace Matterless.Floorcraft
             m_RestController = new RestController(mono);
             m_RestController.Start();
             
-            // Fetch token immediately
-            FetchToken();
+            // Fetch the token as soon as the privacy policy is accepted
+            privacyConsent.WhenGranted(FetchToken);
         }
 
         public string GetToken()
@@ -78,7 +80,7 @@ namespace Matterless.Floorcraft
 
         private void FetchToken()
         {
-            if (m_IsFetchingToken)
+            if (m_IsFetchingToken || !m_PrivacyConsent.granted)
                 return;
 
             if (string.IsNullOrEmpty(m_AppKey) || string.IsNullOrEmpty(m_AppSecret))
