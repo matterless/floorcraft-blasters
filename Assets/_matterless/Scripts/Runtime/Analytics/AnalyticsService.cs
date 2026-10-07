@@ -86,6 +86,17 @@ namespace Matterless.Floorcraft
             privacyConsent.WhenGranted(() =>
             {
                 m_Amplitude.logging = settings.enableLogging;
+                // No location: Amplitude would otherwise store the IP and derive city, region and country from it.
+                // Set before init so it applies from the first event.
+                m_Amplitude.setTrackingOptions(new Dictionary<string, bool>
+                {
+                    {"disableIPAddress", true},
+                    {"disableCity", true},
+                    {"disableRegion", true},
+                    {"disableDMA", true},
+                    {"disableCountry", true},
+                    {"disableLatLng", true},
+                });
                 m_Amplitude.init(settings.amplitudeApiKey);
                 m_Started = true;
                 SendEvent(AnalyticsEvent.APP_LAUNCH);
