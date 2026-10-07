@@ -9,7 +9,7 @@ Shader "Hidden/Matterless/BackroundGradientClear"
     {
         Tags 
         {
-            "RenderPipeline" = "UniversalRenderPipeline" 
+            "RenderPipeline" = "UniversalPipeline" 
             "RenderType"="Opaque" 
         }
         ZWrite Off
