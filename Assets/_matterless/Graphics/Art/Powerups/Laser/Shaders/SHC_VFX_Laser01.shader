@@ -26,16 +26,23 @@ Shader "Matterless/Unlit/Laser"{
       #include "UnityCG.cginc"
       #pragma vertex vert
       #pragma fragment frag
+      // tex2Dlod in the vertex shader
+      #pragma target 3.0
 
-      
+
       fixed4 _Color;
       float _Float;
 
-      //buffers
-      StructuredBuffer<int> Indicies;
-      StructuredBuffer<float3> Vertices;
-      StructuredBuffer<float3> Normals;
-      StructuredBuffer<float2> UVs;
+      // LaserBeamView draws one mesh holding a copy of the segment mesh per segment.
+      // Vertex shaders here never read compute buffers: Mali GPUs on OpenGL ES do not support that.
+      struct appdata
+      {
+          float4 vertex : POSITION;
+          float3 normal : NORMAL;
+          float2 uv : TEXCOORD0;
+          // x: index of the segment copy this vertex belongs to
+          float2 segment : TEXCOORD1;
+      };
 
       struct v2f
       {
@@ -56,21 +63,21 @@ Shader "Matterless/Unlit/Laser"{
       float _TextureOffset;
       float _Distance;
       float4 _TrailColor;
+      float _SegmentCount;
 
       //the vertex shader function
-      v2f vert(uint vertex_id: SV_VertexID, uint instance_id: SV_InstanceID)
+      v2f vert(appdata v)
       {
         v2f o;
-        //get vertex position
-        int positionIndex = Indicies[vertex_id];
-        o.normal = Normals[positionIndex];
-        o.uv = UVs[positionIndex];
+        o.normal = v.normal;
+        o.uv = v.uv;
 
-        float3 position = Vertices[positionIndex];
+        float3 position = v.vertex.xyz;
+        float segment = v.segment.x;
 
         //Initial position with offsets
         position.z *= _Offset;
-        position += float3(0, 0, instance_id * _Offset);
+        position += float3(0, 0, segment * _Offset);
 
 
         // Shrink
@@ -89,6 +96,10 @@ Shader "Matterless/Unlit/Laser"{
         position = mul(_LocalToWorld, float4(position, 1)).xyz;
         //To Clip Space
         o.vertex = UnityObjectToClipPos(float4(position, 1));
+
+        // Only the first _SegmentCount segments are drawn: collapse the rest outside the view
+        if (segment >= _SegmentCount)
+            o.vertex = float4(2, 2, 2, 1);
 
         // //convert the vertex position from world space to clip space
         // return mul(UNITY_MATRIX_VP, float4(position, 1));
