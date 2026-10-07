@@ -16,7 +16,10 @@ namespace Matterless.Floorcraft.Editor
     /// Assets/Plugins/Android, so when it deletes them the build still succeeds and the app crashes at
     /// startup (Amplitude.Instance cannot find its Java plugin class). Before each Android build this
     /// checks for the classes, forces a resolve once if one is missing, and fails the build if it still is.
+    /// The resolver's automatic resolve is off (ProjectSettings/GvhProjectSettings.xml): it deleted the
+    /// libraries before every attempt, and the attempts failed for lack of a usable Java (see UseUnityJdk).
     /// </summary>
+    [InitializeOnLoad]
     public class AndroidDependencyCheck : IPreprocessBuildWithReport
     {
         private const string PluginsFolder = "Assets/Plugins/Android";
@@ -28,6 +31,30 @@ namespace Matterless.Floorcraft.Editor
         };
 
         public int callbackOrder => -50;
+
+        static AndroidDependencyCheck()
+        {
+            UseUnityJdk();
+        }
+
+        // The resolver runs Gradle with JAVA_HOME. Its lookup of Unity's bundled JDK predates Unity 2022's
+        // layout, so an editor started from Unity Hub finds no Java at all, and a shell's newer JDK (17)
+        // is too new for its Gradle. Point this editor process at Unity's own JDK instead.
+        private static void UseUnityJdk()
+        {
+            string jdk;
+            try
+            {
+                jdk = Path.Combine(BuildPipeline.GetPlaybackEngineDirectory(BuildTarget.Android, BuildOptions.None), "OpenJDK");
+            }
+            catch (Exception)
+            {
+                return; // Android support is not installed
+            }
+
+            if (File.Exists(Path.Combine(jdk, "bin", "java")) || File.Exists(Path.Combine(jdk, "bin", "java.exe")))
+                Environment.SetEnvironmentVariable("JAVA_HOME", jdk);
+        }
 
         public void OnPreprocessBuild(BuildReport report)
         {

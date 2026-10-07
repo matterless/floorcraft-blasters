@@ -61,6 +61,11 @@ deleted, a build still succeeds but the app crashes at startup with a
 build: when a required class is missing it forces a resolve, and it fails the build if
 the class is still missing. `tools/play-release.sh` checks the built bundle again.
 
+The resolver's automatic resolve is turned off (`ProjectSettings/GvhProjectSettings.xml`).
+It ran on editor startup after every store build, deleted the libraries first, and then
+failed because it found no usable Java. `AndroidDependencyCheck` also points the editor at
+Unity's bundled JDK, so Force Resolve works whatever `JAVA_HOME` the shell sets.
+
 ## One-time setup: service account
 
 The scripts sign in as a Google Cloud service account that has release access to the
